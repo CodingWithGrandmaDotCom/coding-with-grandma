@@ -1,17 +1,19 @@
-# Coding with Grandma (ESP32 Edition)
+# Coding with Grandma
 
+### Turn your iPhone into an ESP32 programmer. **$0.99 once. Yours forever.**
+
+[![iPhone app](https://img.shields.io/badge/iPhone-%240.99_one--time-ff8c42?style=for-the-badge)](./ROADMAP.md)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE)
 [![Version](https://img.shields.io/badge/version-v0.4-ff8c42)](./ROADMAP.md)
-[![Runs in browser](https://img.shields.io/badge/runs_in-Chrome%20%7C%20Edge-4a9eff)](https://caniuse.com/web-serial)
 [![AI-native](https://img.shields.io/badge/AI-Ollama%20%7C%20Claude%20%7C%20Gemini%20%7C%20OpenAI-ffc857)](./README.md#whats-included)
 [![Pages](https://img.shields.io/github/actions/workflow/status/CodingWithGrandmaDotCom/coding-with-grandma/pages.yml?branch=main&label=pages%20deploy)](https://codingwithgrandmadotcom.github.io/coding-with-grandma/)
 
-A **100% browser-based development platform for ESP32 microcontrollers.**
-No installs, no Arduino IDE, no complicated setup. Open a webpage,
-write code, flash your board, and go.
+**Snap a photo of your breadboard. AI writes the code. Flash your ESP32 wirelessly over Bluetooth.**
+One-time purchase. No subscriptions. No accounts. No ads. No telemetry. Yours forever.
 
 > **For makers, students, hobbyists, classrooms — and anyone who's always wanted to learn hardware but felt locked out by the tooling.**
-> Free forever. Open source. Apache 2.0 licensed.
+> **iPhone app** — $0.99, one-time pay, on the App Store.
+> **Web version** — open-source, Apache 2.0 licensed, self-host from this repo or use our hosted build.
 
 ## What's Included
 

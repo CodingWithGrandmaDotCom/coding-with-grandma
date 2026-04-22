@@ -1,0 +1,46 @@
+{
+  "name": "coding-with-grandma",
+  "version": "0.4.0",
+  "description": "AI-powered ESP32 IDE — open-source web version, plus a $0.99 iPhone app with Bluetooth flashing.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CodingWithGrandmaDotCom/coding-with-grandma.git"
+  },
+  "homepage": "https://codingwithgrandmadotcom.github.io/coding-with-grandma/",
+  "private": false,
+  "scripts": {
+    "build:web": "node scripts/build-web.mjs",
+    "cap:sync": "npm run build:web && cap sync",
+    "cap:add:ios": "cap add ios",
+    "cap:open:ios": "cap open ios",
+    "cap:run:ios": "cap run ios",
+    "cap:resources": "cap resources"
+  },
+  "dependencies": {
+    "@capacitor/core": "^5.7.0",
+    "@capacitor/ios": "^5.7.0",
+    "@capacitor/camera": "^5.0.9",
+    "@capacitor/preferences": "^5.0.8",
+    "@capacitor/status-bar": "^5.0.8",
+    "@capacitor/splash-screen": "^5.0.8",
+    "@capacitor-community/bluetooth-le": "^3.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "esp32",
+    "arduino-alternative",
+    "browser-ide",
+    "ios-app",
+    "capacitor",
+    "bluetooth-le",
+    "ai-coding",
+    "education",
+    "makers"
+  ]
+}

@@ -2,15 +2,20 @@
 
 ## Project Overview
 
-A 100% browser-based IDE for ESP32 microcontrollers. Self-contained Arduino competitor. Zero installs, zero accounts, zero fees. AI-powered code generation with 4 providers.
+An ESP32 development platform shipping in two forms:
+
+- **Web version** (`ide.html`) — open-source, Apache 2.0, runs in any Chromium browser. USB flashing via Web Serial API. Lives at the hosted GitHub Pages URL and can be self-hosted from a fork.
+- **iPhone app** (`ios/`, in progress) — native Capacitor-wrapped version on the App Store at **$0.99 one-time**. Uses Bluetooth LE for wireless flashing (iOS doesn't expose USB serial). No subscriptions, no ads, no accounts, no telemetry.
+
+AI-powered code generation with 4 providers (Ollama / Claude / Gemini / OpenAI). Self-contained Arduino competitor.
 
 "Coding with Grandma" is a working name (will be rebranded later).
 
 ## Repo
 
-Open-source under Apache 2.0. Pushes are made via GitHub Desktop on Windows.
+Open-source under Apache 2.0. Public at `https://github.com/CodingWithGrandmaDotCom/coding-with-grandma`. Pushes can happen via GitHub Desktop or CLI (credential in keyring via `gh auth login`).
 
-## Current State (v0.3 — as of April 2026)
+## Current State (v0.4 — as of April 2026)
 
 ### What's shipped
 
@@ -60,9 +65,15 @@ Open-source under Apache 2.0. Pushes are made via GitHub Desktop on Windows.
 
 ## Architecture
 
+### Web version (`ide.html`)
+
 Single HTML file. No build tools. No server. No npm in production. Intentional choice for max portability.
 
-### CDN dependencies
+### iOS app (`ios/` — in progress on branch `ios-app`)
+
+Capacitor 5+ wrapping the same `ide.html`. Uses npm for the iOS subproject only; the shared HTML stays CDN-loaded. BLE plugin replaces Web Serial on iOS. Camera plugin replaces getUserMedia on iOS. Keychain (via Capacitor Preferences secure option) replaces localStorage for API keys on iOS.
+
+### CDN dependencies (web)
 ```
 Monaco Editor: cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/
 Lucide Icons:  unpkg.com/lucide@0.263.1/dist/umd/lucide.min.js
@@ -101,8 +112,8 @@ examples/             ← Future: Sample ESP32 sketches
 
 ## Conventions
 
-- **Single HTML file** until it's unmanageable, then split into modules
-- **Vanilla JS only** — no frameworks, no build tools, no npm
+- **Web version is a single HTML file** (`ide.html`) until it's unmanageable, then split into modules
+- **Vanilla JS in the web version** — no frameworks, no build tools, no npm in `ide.html`. npm is OK inside `ios/` only.
 - **Beginner-first language** — assume zero coding/electronics experience
 - **Self-contained** — never reference Arduino IDE, PlatformIO, or external tools in user-facing content
 - **New files:** use `YYYY-MM-DD-descriptive-name` format
@@ -110,8 +121,9 @@ examples/             ← Future: Sample ESP32 sketches
 
 ## What NOT to do
 
-- Don't add build tools, bundlers, or package managers
+- Don't add build tools, bundlers, or package managers to `ide.html`. Keep the web version vanilla and CDN-loaded.
 - Don't commit credentials, WiFi passwords, or API keys
 - Don't reference Arduino IDE or PlatformIO in user-facing content
 - Don't modify LICENSE without explicit approval
-- Don't commit commercial/business planning documents — those live outside the repo
+- Don't commit commercial/business planning documents — those live outside the repo in `Coding with Grandma Business/`
+- Don't introduce subscription pricing, ads, or telemetry anywhere. iPhone app is strictly $0.99 one-time.

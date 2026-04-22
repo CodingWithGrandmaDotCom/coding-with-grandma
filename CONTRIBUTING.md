@@ -17,21 +17,21 @@ No build step. No npm install. No toolchain setup. This is by design — see **P
 
 ### Principles (don't break these)
 
-1. **Browser-first.** Everything runs in a browser. No installs, ever.
+1. **Works anywhere.** The web version runs in any Chromium browser — no install. The iPhone app is a one-time download from the App Store. No friction either way.
 2. **Beginner-first.** If a 10-year-old can't figure it out, simplify it.
 3. **Self-contained.** Don't send users to Arduino IDE or any other tool. Build it in.
 4. **Open and shareable.** Projects should be easy to share and remix.
 5. **AI-native.** AI isn't a bolt-on — it's the foundation.
-6. **Free forever core.** The free tier must be genuinely useful, not a crippled demo.
+6. **Simple pricing.** iPhone app is $0.99 one-time — no subscriptions, no ads, no accounts, no telemetry. Web version is open-source (Apache 2.0) and self-hostable free. That's the whole deal.
 
 ### Technical conventions
 
-- **Single HTML file** (`ide.html`) for now. When it gets too large to manage, we'll split into modules in `software/`.
-- **Vanilla JS only.** No React, Vue, bundlers, or npm in production.
-- **CDN-loaded dependencies** (Monaco, Lucide, esptool-js).
+- **Web version (`ide.html`)**: single HTML file, vanilla JS, CDN-loaded (Monaco, Lucide, esptool-js). No build step. No npm in the web product itself.
+- **iOS app (`ios/`)**: built with [Capacitor](https://capacitorjs.com) — wraps the same `ide.html` source and adds native plugins for Bluetooth (replaces Web Serial on iOS, which doesn't expose USB), camera, and App Store distribution. The iOS subproject uses npm; this is OK *inside the `ios/` folder only* — the shared `ide.html` stays vanilla.
+- **Platform detection** in `ide.html` — a small runtime check swaps the "Connect" flow between Web Serial (desktop) and BLE (iOS).
 - **Never reference** Arduino IDE, PlatformIO, or other external tools in user-facing content.
 - **Plain-English comments** in starter templates — explain every concept as if to a beginner.
-- **No hardcoded secrets.** API keys go in browser `localStorage` only, never in the repo.
+- **No hardcoded secrets.** API keys go in browser `localStorage` / iOS keychain only, never in the repo.
 
 See `AGENTS.md` for the full style guide used by AI coding agents working on this project.
 

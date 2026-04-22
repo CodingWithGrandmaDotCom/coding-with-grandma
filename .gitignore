@@ -67,8 +67,23 @@ credentials.h
 *.log
 logs/
 
-# ===== Node.js (for desktop app tooling) =====
+# ===== Node.js (for Capacitor tooling) =====
 node_modules/
 npm-debug.log*
+yarn-error.log*
 dist/
 build/
+
+# ===== Capacitor / iOS build artifacts =====
+# The ios/ folder itself IS committed (source code: Xcode project, Info.plist, icons).
+# But build output, user-specific Xcode state, and CocoaPods deps are not.
+ios/App/Pods/
+ios/App/App.xcworkspace/xcuserdata/
+ios/App/App.xcodeproj/xcuserdata/
+ios/App/App.xcodeproj/project.xcworkspace/xcuserdata/
+ios/DerivedData/
+ios/App/build/
+ios/App/output/
+ios/capacitor-cordova-ios-plugins/
+*.xcuserstate
+*.xcuserdatad/

@@ -20,10 +20,10 @@ assignees: ''
 
 ## Does this fit the project's principles?
 
-- [ ] Browser-first (no installs)
+- [ ] Works anywhere (runs in browser AND the iOS app without friction)
 - [ ] Beginner-first (a 10-year-old could use it)
 - [ ] Self-contained (no external IDE required)
-- [ ] Free tier remains genuinely useful
+- [ ] No subscriptions, no ads, no account required
 
 ## Anything else?
 
