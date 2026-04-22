@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/CodingWithGrandmaDotCom/coding-with-grandma/security/advisories/new
+    about: Please report security issues privately — NOT in a public issue. See SECURITY.md for details.
+  - name: General questions / show-and-tell
+    url: https://github.com/CodingWithGrandmaDotCom/coding-with-grandma/discussions
+    about: For ideas, questions, and sharing what you built, use Discussions instead of Issues.
