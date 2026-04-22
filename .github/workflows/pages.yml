@@ -1,0 +1,54 @@
+name: Deploy to GitHub Pages
+
+# Deploys the repo root as a static site to GitHub Pages.
+# Requires: Settings -> Pages -> Source = "GitHub Actions" (one-time setup).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create site bundle
+        run: |
+          mkdir -p _site
+          # Copy the landing + IDE as the static site. index.html is the landing / prompt builder.
+          cp index.html _site/index.html
+          cp ide.html _site/ide.html
+          # A friendly 404 that points lost visitors back to the landing page.
+          if [ -f 404.html ]; then cp 404.html _site/404.html; fi
+          # Include the LICENSE so the hosted site credits it.
+          if [ -f LICENSE ]; then cp LICENSE _site/LICENSE; fi
+          # Jekyll would otherwise ignore folders that start with underscores; we don't use Jekyll.
+          touch _site/.nojekyll
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

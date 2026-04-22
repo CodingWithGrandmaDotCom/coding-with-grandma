@@ -1,0 +1,2310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description" content="Coding with Grandma — a 100% browser-based ESP32 IDE. Zero installs, zero accounts, zero fees. AI-powered, beginner-friendly hardware programming.">
+    <meta name="theme-color" content="#0B1628">
+    <title>Coding with Grandma — ESP32 IDE</title>
+
+    <!-- Monaco Editor from CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@0.263.1/dist/umd/lucide.min.js"></script>
+    <!-- esptool-js for browser-based firmware flashing (loaded as ES module, exposed globally) -->
+    <script type="module">
+      try {
+        const mod = await import('https://unpkg.com/esptool-js@0.5.3/bundle.js');
+        window.ESPLoader = mod.ESPLoader;
+        window.Transport = mod.Transport;
+        window.__esptoolReady = true;
+      } catch (e) {
+        window.__esptoolReady = false;
+        window.__esptoolError = e && e.message ? e.message : String(e);
+      }
+    </script>
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            /* === SAN DIEGO SUNSET PALETTE === */
+            --bg-deep: #0b1628;          /* deep ocean night */
+            --bg-panel: #0f1f3d;         /* dark navy panel */
+            --bg-input: #0a1225;         /* deepest input bg */
+            --bg-hover: #162a4a;         /* hover state */
+            --border: #1e3a5f;           /* steel blue border */
+            --border-light: #2a4a6b;     /* lighter border */
+
+            /* Sunset accents */
+            --orange: #ff8c42;           /* warm sunset orange */
+            --orange-hover: #ffa663;     /* lighter orange */
+            --orange-glow: rgba(255, 140, 66, 0.12);
+            --coral: #ff6b6b;            /* coral pink */
+            --blue: #4a9eff;             /* ocean blue */
+            --blue-deep: #2d7dd2;        /* deeper blue */
+            --gold: #ffc857;             /* sunset gold */
+
+            /* Status colors */
+            --green: #2ecc71;
+            --red: #ff5252;
+            --yellow: #ffc857;
+
+            /* Text — crisp whites */
+            --text: #ffffff;             /* pure white */
+            --text-dim: #b8c9e0;         /* soft blue-white */
+            --text-dimmer: #6b8299;      /* muted steel */
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-deep);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ===== ANIMATIONS ===== */
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes slideIn { from { transform: translateX(-10px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes sunsetGlow {
+            0%, 100% { box-shadow: 0 0 15px rgba(255, 140, 66, 0.2); }
+            50% { box-shadow: 0 0 25px rgba(255, 140, 66, 0.4); }
+        }
+
+        .loading-spinner {
+            width: 16px; height: 16px;
+            border: 2px solid var(--border);
+            border-top-color: var(--orange);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            display: inline-block;
+        }
+
+        /* ===== TOP BAR ===== */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.4rem 1rem;
+            background: linear-gradient(135deg, var(--bg-panel) 0%, #132742 100%);
+            border-bottom: 1px solid var(--border);
+            height: 52px;
+            flex-shrink: 0;
+        }
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .logo {
+            font-size: 1.15rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--orange), var(--gold), var(--coral));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.3px;
+        }
+
+        .logo-sub {
+            font-size: 0.6rem;
+            color: var(--text-dimmer);
+            font-weight: 500;
+            margin-left: -0.3rem;
+        }
+
+        .version-badge {
+            font-size: 0.55rem;
+            background: var(--orange);
+            color: var(--bg-deep);
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+            font-weight: 700;
+        }
+
+        .topbar-actions { display: flex; gap: 0.5rem; }
+
+        .btn {
+            padding: 0.4rem 0.85rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-input);
+            color: var(--text);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn:hover { border-color: var(--orange); color: var(--orange); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .btn-orange {
+            background: linear-gradient(135deg, var(--orange), #e67a30);
+            color: white;
+            border-color: var(--orange);
+            font-weight: 700;
+        }
+        .btn-orange:hover { background: linear-gradient(135deg, var(--orange-hover), var(--orange)); color: white; }
+
+        .btn-green { background: var(--green); color: white; border-color: var(--green); }
+        .btn-green:hover { background: #3ddb85; color: white; }
+
+        .btn-blue { background: var(--blue); color: white; border-color: var(--blue); }
+        .btn-blue:hover { background: #5daeff; color: white; }
+
+        .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.7rem; }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+
+        .status-dot {
+            width: 9px; height: 9px;
+            border-radius: 50%;
+            background: var(--text-dimmer);
+            transition: all 0.3s;
+        }
+
+        .status-dot.connected {
+            background: var(--green);
+            box-shadow: 0 0 8px var(--green);
+        }
+
+        /* ===== MAIN LAYOUT ===== */
+        .main { display: flex; flex: 1; overflow: hidden; }
+
+        /* ===== LEFT SIDEBAR ===== */
+        .sidebar {
+            width: 340px;
+            background: var(--bg-panel);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .sidebar-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            background: rgba(0,0,0,0.15);
+        }
+
+        .sidebar-tab {
+            flex: 1;
+            padding: 0.65rem 0.5rem;
+            text-align: center;
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--text-dimmer);
+            cursor: pointer;
+            border: none;
+            background: none;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.3rem;
+        }
+
+        .sidebar-tab:hover { color: var(--text-dim); }
+        .sidebar-tab.active { color: var(--orange); border-bottom-color: var(--orange); }
+
+        .sidebar-panel { display: none; flex: 1; overflow-y: auto; padding: 0.8rem; }
+        .sidebar-panel.active { display: block; }
+
+        .section { margin-bottom: 1rem; }
+        .section-label {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--orange);
+            margin-bottom: 0.4rem;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .section textarea,
+        .section select,
+        .section input[type="text"],
+        .section input[type="password"],
+        .section input[type="url"],
+        .section input[type="number"] {
+            width: 100%;
+            padding: 0.55rem 0.6rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-input);
+            color: var(--text);
+            font-size: 0.85rem;
+            font-family: inherit;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .section textarea { resize: vertical; min-height: 80px; }
+        .section textarea:focus,
+        .section select:focus,
+        .section input:focus {
+            outline: none;
+            border-color: var(--orange);
+            box-shadow: 0 0 0 2px var(--orange-glow);
+        }
+
+        /* AI Provider Card */
+        .provider-card {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0.6rem 0.7rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .provider-card:hover { border-color: var(--border-light); background: var(--bg-hover); }
+        .provider-card.selected {
+            border-color: var(--orange);
+            background: var(--orange-glow);
+            box-shadow: 0 0 12px rgba(255, 140, 66, 0.08);
+        }
+
+        .provider-icon {
+            width: 38px; height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+
+        .provider-info { flex: 1; min-width: 0; }
+        .provider-name { font-weight: 700; font-size: 0.85rem; color: var(--text); }
+        .provider-desc { font-size: 0.7rem; color: var(--text-dimmer); }
+
+        .provider-status {
+            font-size: 0.6rem;
+            padding: 0.15rem 0.45rem;
+            border-radius: 5px;
+            font-weight: 700;
+            flex-shrink: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .provider-status.ready { background: rgba(46,204,113,0.15); color: var(--green); }
+        .provider-status.needs-key { background: rgba(255,200,87,0.15); color: var(--gold); }
+        .provider-status.checking { background: rgba(74,158,255,0.15); color: var(--blue); }
+
+        /* API Key Input */
+        .key-input-group { display: none; margin-top: 0.5rem; animation: slideIn 0.2s; }
+        .key-input-group.visible { display: block; }
+        .key-input-row { display: flex; gap: 0.3rem; }
+        .key-input-row input { flex: 1; font-size: 0.8rem; }
+
+        /* AI Response */
+        .ai-response-area {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--bg-input);
+            padding: 0.7rem;
+            min-height: 100px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 0.8rem;
+            line-height: 1.5;
+            color: var(--text-dim);
+        }
+
+        .ai-response-area.has-content { color: var(--text); }
+        .ai-response-area .thinking { animation: pulse 1.5s infinite; color: var(--orange); }
+
+        /* Template Grid */
+        .template-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+
+        .template-btn {
+            padding: 0.6rem;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--bg-input);
+            color: var(--text);
+            font-size: 0.75rem;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+        }
+
+        .template-btn:hover {
+            border-color: var(--orange);
+            background: var(--orange-glow);
+            transform: translateY(-1px);
+        }
+
+        .template-btn .t-icon { font-size: 1.2rem; margin-bottom: 0.25rem; }
+        .template-btn .t-name { font-weight: 700; margin-bottom: 0.1rem; color: var(--text); }
+        .template-btn .t-desc { color: var(--text-dimmer); font-size: 0.65rem; }
+
+        /* Settings */
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.55rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .setting-row:last-child { border-bottom: none; }
+        .setting-label { font-size: 0.8rem; font-weight: 600; color: var(--text); }
+        .setting-desc { font-size: 0.7rem; color: var(--text-dimmer); }
+
+        .setting-row select,
+        .setting-row input[type="number"] {
+            width: 120px;
+            padding: 0.3rem;
+            font-size: 0.8rem;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 42px; height: 24px;
+            background: var(--border);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .toggle-switch.on { background: var(--orange); }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px; left: 2px;
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            background: white;
+            transition: transform 0.2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .toggle-switch.on::after { transform: translateX(18px); }
+
+        /* ===== CENTER - EDITOR ===== */
+        .editor-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .editor-tabs {
+            display: flex;
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            height: 38px;
+            align-items: flex-end;
+            padding-left: 0.5rem;
+        }
+
+        .editor-tab {
+            padding: 0.45rem 1rem;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            cursor: pointer;
+            border: 1px solid transparent;
+            border-bottom: none;
+            border-radius: 8px 8px 0 0;
+            background: transparent;
+            font-weight: 500;
+        }
+
+        .editor-tab.active {
+            background: var(--bg-deep);
+            color: var(--text);
+            border-color: var(--border);
+            font-weight: 600;
+        }
+
+        #editor-container { flex: 1; }
+
+        /* ===== BOTTOM PANEL ===== */
+        .bottom-panel {
+            height: 200px;
+            background: var(--bg-panel);
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .bottom-tabs {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 0.5rem;
+            height: 34px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(0,0,0,0.1);
+        }
+
+        .bottom-tabs-left { display: flex; gap: 0; }
+
+        .bottom-tab {
+            padding: 0.35rem 0.8rem;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-weight: 500;
+        }
+
+        .bottom-tab.active { color: var(--orange); font-weight: 700; }
+
+        .bottom-tabs-right { display: flex; gap: 0.4rem; align-items: center; }
+
+        .baud-select {
+            padding: 0.2rem 0.4rem;
+            font-size: 0.7rem;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+        }
+
+        .serial-output {
+            flex: 1;
+            padding: 0.6rem;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.8rem;
+            line-height: 1.5;
+            overflow-y: auto;
+            color: var(--green);
+            background: #060d18;
+        }
+
+        .serial-output .sys-msg { color: var(--orange); }
+        .serial-output .err-msg { color: var(--red); }
+        .serial-output .warn-msg { color: var(--gold); }
+        .serial-output .ts { color: var(--text-dimmer); font-size: 0.7rem; margin-right: 0.5rem; }
+
+        .serial-input-row { display: flex; border-top: 1px solid var(--border); }
+
+        .serial-input-row input {
+            flex: 1;
+            padding: 0.45rem 0.6rem;
+            background: var(--bg-input);
+            border: none;
+            color: var(--text);
+            font-family: 'Consolas', monospace;
+            font-size: 0.8rem;
+        }
+
+        .serial-input-row input:focus { outline: none; }
+
+        .serial-input-row button {
+            padding: 0.45rem 1rem;
+            background: var(--orange);
+            color: white;
+            border: none;
+            font-weight: 700;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .serial-input-row button:hover { background: var(--orange-hover); }
+
+        /* ===== RESIZE HANDLE ===== */
+        .resize-handle {
+            height: 4px;
+            background: var(--border);
+            cursor: ns-resize;
+            flex-shrink: 0;
+            transition: background 0.15s;
+        }
+
+        .resize-handle:hover { background: var(--orange); }
+
+        /* ===== MODAL ===== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(5, 10, 20, 0.8);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-overlay.visible { display: flex; }
+
+        .modal {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.8rem;
+            max-width: 500px;
+            width: 90%;
+            animation: fadeIn 0.2s;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .modal h2 {
+            background: linear-gradient(135deg, var(--orange), var(--gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 1.15rem;
+            margin-bottom: 0.6rem;
+        }
+
+        .modal p { color: var(--text-dim); font-size: 0.85rem; line-height: 1.6; margin-bottom: 1rem; }
+        .modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+
+        /* ===== LOADING OVERLAY ===== */
+        .loading-overlay {
+            display: none;
+            position: absolute;
+            inset: 0;
+            background: rgba(11, 22, 40, 0.9);
+            z-index: 50;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 1rem;
+            backdrop-filter: blur(2px);
+        }
+
+        .loading-overlay.visible { display: flex; }
+        .loading-overlay .loading-text { color: var(--orange); font-weight: 700; font-size: 0.95rem; }
+        .loading-overlay .loading-spinner-lg {
+            width: 44px; height: 44px;
+            border: 3px solid var(--border);
+            border-top-color: var(--orange);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--border-light); }
+
+        /* ===== FLASH MODAL / PROGRESS ===== */
+        .flash-row { display: flex; align-items: center; gap: 0.5rem; margin: 0.6rem 0; flex-wrap: wrap; }
+        .flash-row label { font-size: 0.8rem; color: var(--text-dim); flex: 1 0 100%; font-weight: 600; }
+        .flash-row input[type="file"] { font-size: 0.75rem; color: var(--text-dim); flex: 1; }
+        .flash-row input[type="text"], .flash-row select { flex: 1; background: var(--bg-input); border: 1px solid var(--border); color: var(--text); padding: 0.4rem 0.6rem; border-radius: 6px; font-size: 0.8rem; }
+        .progress-wrap { width: 100%; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; height: 18px; overflow: hidden; margin: 0.6rem 0 0.3rem; }
+        .progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--orange), var(--gold)); transition: width 0.25s; }
+        .progress-text { font-size: 0.72rem; color: var(--text-dim); text-align: center; font-variant-numeric: tabular-nums; }
+        .flash-log { background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem; font-family: ui-monospace, monospace; font-size: 0.7rem; color: var(--text-dim); max-height: 140px; overflow-y: auto; margin-top: 0.5rem; white-space: pre-wrap; }
+        .hint { font-size: 0.72rem; color: var(--text-dimmer); line-height: 1.5; margin: 0.3rem 0 0.6rem; }
+
+        /* ===== LESSONS ===== */
+        .lesson-card { background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; padding: 0.8rem; margin-bottom: 0.6rem; transition: all 0.2s; cursor: pointer; }
+        .lesson-card:hover { border-color: var(--orange); transform: translateY(-1px); }
+        .lesson-card-title { font-size: 0.85rem; font-weight: 700; color: var(--text); margin-bottom: 0.2rem; display: flex; align-items: center; gap: 0.4rem; }
+        .lesson-card-meta { font-size: 0.65rem; color: var(--text-dimmer); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.4rem; }
+        .lesson-card-desc { font-size: 0.75rem; color: var(--text-dim); line-height: 1.5; }
+        .lesson-step { border-left: 2px solid var(--orange); padding: 0.5rem 0.7rem; margin-bottom: 0.5rem; background: rgba(255, 140, 66, 0.05); border-radius: 0 6px 6px 0; }
+        .lesson-step-num { font-size: 0.6rem; color: var(--orange); font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+        .lesson-step-title { font-size: 0.85rem; font-weight: 700; color: var(--text); margin: 0.1rem 0 0.3rem; }
+        .lesson-step-desc { font-size: 0.72rem; color: var(--text-dim); line-height: 1.5; margin-bottom: 0.4rem; }
+        .lesson-back { font-size: 0.7rem; color: var(--orange); cursor: pointer; margin-bottom: 0.6rem; display: inline-flex; align-items: center; gap: 0.3rem; background: none; border: none; padding: 0.3rem 0; }
+        .lesson-back:hover { text-decoration: underline; }
+
+        /* ===== MOBILE HAMBURGER ===== */
+        .mobile-menu-btn {
+            display: none;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.4rem 0.6rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1100px) {
+            .sidebar { width: 300px; }
+            .logo-sub { display: none; }
+        }
+        @media (max-width: 900px) {
+            .sidebar { width: 260px; }
+            .topbar { padding: 0.3rem 0.6rem; }
+            .btn { padding: 0.35rem 0.6rem; font-size: 0.72rem; }
+            .logo { font-size: 1rem; }
+        }
+        @media (max-width: 760px) {
+            .mobile-menu-btn { display: inline-flex; align-items: center; gap: 0.3rem; }
+            .topbar { flex-wrap: wrap; height: auto; padding: 0.4rem 0.6rem; gap: 0.4rem; }
+            .topbar-left { flex: 1; gap: 0.4rem; }
+            .connection-status { font-size: 0.7rem; }
+            .topbar-actions { flex-wrap: wrap; gap: 0.3rem; width: 100%; justify-content: flex-start; }
+            .main { flex-direction: column; }
+            .sidebar {
+                width: 100%;
+                height: auto;
+                max-height: 45vh;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+                display: none;
+            }
+            .sidebar.mobile-open { display: flex; }
+            .editor-area { min-height: 50vh; }
+            .bottom-panel { height: 160px !important; }
+            .modal { width: 96%; max-width: 96%; max-height: 88vh; overflow-y: auto; padding: 1rem; }
+        }
+        @media (max-width: 480px) {
+            .version-badge { display: none; }
+            .btn span, .btn-label { display: none; }
+            .btn { padding: 0.4rem 0.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TOP BAR -->
+    <div class="topbar">
+        <div class="topbar-left">
+            <button class="mobile-menu-btn" onclick="toggleMobileSidebar()" aria-label="Toggle menu">
+                <i data-lucide="menu" style="width:16px;height:16px;"></i>
+            </button>
+            <span class="logo">Coding with Grandma</span>
+            <span class="logo-sub">ESP32 Edition</span>
+            <span class="version-badge">v0.4</span>
+            <div class="connection-status">
+                <span class="status-dot" id="status-dot"></span>
+                <span id="status-text">No board connected</span>
+            </div>
+        </div>
+        <div class="topbar-actions">
+            <button class="btn" onclick="openSketch()" title="Open a saved .ino file">
+                <i data-lucide="folder-open" style="width:14px;height:14px;"></i> <span class="btn-label">Open</span>
+            </button>
+            <button class="btn" onclick="saveSketch()" title="Download sketch as .ino">
+                <i data-lucide="save" style="width:14px;height:14px;"></i> <span class="btn-label">Save</span>
+            </button>
+            <button class="btn" onclick="connectBoard()">
+                <i data-lucide="usb" style="width:14px;height:14px;"></i> <span class="btn-label">Connect</span>
+            </button>
+            <button class="btn btn-blue" onclick="verifyCode()">
+                <i data-lucide="check-circle" style="width:14px;height:14px;"></i> <span class="btn-label">Verify</span>
+            </button>
+            <button class="btn btn-green" onclick="openFlashModal()" title="Flash a compiled .bin firmware">
+                <i data-lucide="zap" style="width:14px;height:14px;"></i> <span class="btn-label">Flash</span>
+            </button>
+        </div>
+        <!-- hidden file pickers -->
+        <input type="file" id="open-file-input" accept=".ino,.cpp,.c,.txt" style="display:none;" onchange="handleOpenFile(event)">
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main">
+
+        <!-- LEFT SIDEBAR -->
+        <div class="sidebar">
+            <div class="sidebar-tabs">
+                <button class="sidebar-tab active" onclick="switchSidebarTab('ai')">
+                    <i data-lucide="bot" style="width:14px;height:14px;"></i> AI
+                </button>
+                <button class="sidebar-tab" onclick="switchSidebarTab('templates')">
+                    <i data-lucide="layout-template" style="width:14px;height:14px;"></i> Templates
+                </button>
+                <button class="sidebar-tab" onclick="switchSidebarTab('lessons')">
+                    <i data-lucide="graduation-cap" style="width:14px;height:14px;"></i> Lessons
+                </button>
+                <button class="sidebar-tab" onclick="switchSidebarTab('snap')">
+                    <i data-lucide="camera" style="width:14px;height:14px;"></i> Snap
+                </button>
+                <button class="sidebar-tab" onclick="switchSidebarTab('settings')">
+                    <i data-lucide="settings" style="width:14px;height:14px;"></i> Settings
+                </button>
+            </div>
+
+            <!-- AI PANEL -->
+            <div class="sidebar-panel active" id="panel-ai">
+
+                <div class="section">
+                    <span class="section-label">AI Provider</span>
+
+                    <div class="provider-card selected" onclick="selectProvider('ollama')" id="provider-ollama">
+                        <div class="provider-icon" style="background:linear-gradient(135deg,#1a1a2e,#16213e);color:#00d4ff;">O</div>
+                        <div class="provider-info">
+                            <div class="provider-name">Ollama (Local)</div>
+                            <div class="provider-desc">Free — runs on your computer</div>
+                        </div>
+                        <span class="provider-status checking" id="ollama-status">Checking</span>
+                    </div>
+
+                    <div class="provider-card" onclick="selectProvider('claude')" id="provider-claude">
+                        <div class="provider-icon" style="background:linear-gradient(135deg,#d4a574,#cc785c);color:white;">C</div>
+                        <div class="provider-info">
+                            <div class="provider-name">Claude (Anthropic)</div>
+                            <div class="provider-desc">Smart, great at code</div>
+                        </div>
+                        <span class="provider-status needs-key" id="claude-status">Needs Key</span>
+                    </div>
+
+                    <div class="provider-card" onclick="selectProvider('gemini')" id="provider-gemini">
+                        <div class="provider-icon" style="background:linear-gradient(135deg,#4285f4,#34a853);color:white;">G</div>
+                        <div class="provider-info">
+                            <div class="provider-name">Gemini (Google)</div>
+                            <div class="provider-desc">Fast, free tier available</div>
+                        </div>
+                        <span class="provider-status needs-key" id="gemini-status">Needs Key</span>
+                    </div>
+
+                    <div class="provider-card" onclick="selectProvider('openai')" id="provider-openai">
+                        <div class="provider-icon" style="background:linear-gradient(135deg,#10a37f,#1a7f64);color:white;">AI</div>
+                        <div class="provider-info">
+                            <div class="provider-name">OpenAI (GPT)</div>
+                            <div class="provider-desc">Popular, paid API</div>
+                        </div>
+                        <span class="provider-status needs-key" id="openai-status">Needs Key</span>
+                    </div>
+
+                    <div class="key-input-group" id="key-input-area">
+                        <span class="section-label" id="key-label">API Key</span>
+                        <div class="key-input-row">
+                            <input type="password" id="api-key-input" placeholder="Paste your API key here...">
+                            <button class="btn btn-sm btn-orange" onclick="saveApiKey()">Save</button>
+                        </div>
+                        <div style="font-size:0.65rem;color:var(--text-dimmer);margin-top:0.3rem;" id="key-help">
+                            Keys are stored locally in your browser. Never shared.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section" id="ollama-model-section">
+                    <span class="section-label">Ollama Model</span>
+                    <select id="ollama-model">
+                        <option value="codellama">codellama (recommended)</option>
+                        <option value="llama3">llama3</option>
+                        <option value="mistral">mistral</option>
+                        <option value="deepseek-coder">deepseek-coder</option>
+                    </select>
+                </div>
+
+                <div class="section">
+                    <span class="section-label">Describe your project</span>
+                    <textarea id="ai-prompt" rows="4" placeholder="Example: Blink an LED every second and print the count to the serial monitor"></textarea>
+                </div>
+
+                <div class="section" style="display:flex;gap:0.5rem;">
+                    <div style="flex:1;">
+                        <span class="section-label">Board</span>
+                        <select id="ai-board">
+                            <option value="ESP32 DevKit v1">ESP32 DevKit v1</option>
+                            <option value="ESP32-S3">ESP32-S3</option>
+                            <option value="ESP32-C3">ESP32-C3</option>
+                            <option value="ESP32 (generic)">Not sure</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <span class="section-label">Components (optional)</span>
+                    <input type="text" id="ai-components" placeholder="LED, temperature sensor, OLED screen...">
+                </div>
+
+                <button class="btn btn-orange" id="generate-btn" style="width:100%;justify-content:center;margin-bottom:0.6rem;padding:0.65rem;font-size:0.9rem;" onclick="generateWithAI()">
+                    <i data-lucide="sparkles" style="width:16px;height:16px;"></i> Generate Code with AI
+                </button>
+
+                <div class="section">
+                    <span class="section-label">AI Response</span>
+                    <div class="ai-response-area" id="ai-response">
+                        Pick a provider above, describe your project, and click Generate!
+                    </div>
+                    <button class="btn btn-sm" id="insert-code-btn" style="margin-top:0.4rem;display:none;" onclick="insertGeneratedCode()">
+                        <i data-lucide="code" style="width:12px;height:12px;"></i> Insert Code into Editor
+                    </button>
+                </div>
+            </div>
+
+            <!-- TEMPLATES PANEL -->
+            <div class="sidebar-panel" id="panel-templates">
+                <div class="section">
+                    <span class="section-label">Quick Start Templates</span>
+                    <p style="font-size:0.75rem;color:var(--text-dimmer);margin-bottom:0.7rem;line-height:1.5;">
+                        Click any template to load it into the editor. Each one is a complete, working project!
+                    </p>
+                    <div class="template-grid">
+                        <button class="template-btn" onclick="loadTemplate('blink')">
+                            <div class="t-icon">💡</div>
+                            <div class="t-name">Blink LED</div>
+                            <div class="t-desc">Classic starter project</div>
+                        </button>
+                        <button class="template-btn" onclick="loadTemplate('button')">
+                            <div class="t-icon">🔘</div>
+                            <div class="t-name">Button Input</div>
+                            <div class="t-desc">Read a button press</div>
+                        </button>
+                        <button class="template-btn" onclick="loadTemplate('wifi')">
+                            <div class="t-icon">📶</div>
+                            <div class="t-name">WiFi Connect</div>
+                            <div class="t-desc">Join a WiFi network</div>
+                        </button>
+                        <button class="template-btn" onclick="loadTemplate('temperature')">
+                            <div class="t-icon">🌡️</div>
+                            <div class="t-name">Temperature</div>
+                            <div class="t-desc">Read a temp sensor</div>
+                        </button>
+                        <button class="template-btn" onclick="loadTemplate('servo')">
+                            <div class="t-icon">⚙️</div>
+                            <div class="t-name">Servo Motor</div>
+                            <div class="t-desc">Control a servo</div>
+                        </button>
+                        <button class="template-btn" onclick="loadTemplate('webserver')">
+                            <div class="t-icon">🌐</div>
+                            <div class="t-name">Web Server</div>
+                            <div class="t-desc">Control from your phone</div>
+                        </button>
+                        <button class="template-btn" onclick="loadTemplate('oled')">
+                            <div class="t-icon">🖥️</div>
+                            <div class="t-name">OLED Display</div>
+                            <div class="t-desc">Show text on screen</div>
+                        </button>
+                        <button class="template-btn" onclick="loadTemplate('neopixel')">
+                            <div class="t-icon">🌈</div>
+                            <div class="t-name">NeoPixels</div>
+                            <div class="t-desc">RGB LED strip effects</div>
+                        </button>
+                        <button class="template-btn" onclick="loadTemplate('pir')">
+                            <div class="t-icon">👁️</div>
+                            <div class="t-name">PIR Motion</div>
+                            <div class="t-desc">Detect movement</div>
+                        </button>
+                        <button class="template-btn" onclick="loadTemplate('ultrasonic')">
+                            <div class="t-icon">📏</div>
+                            <div class="t-name">Distance</div>
+                            <div class="t-desc">Ultrasonic range finder</div>
+                        </button>
+                        <button class="template-btn" onclick="loadTemplate('ble')">
+                            <div class="t-icon">📱</div>
+                            <div class="t-name">Bluetooth LE</div>
+                            <div class="t-desc">Talk to your phone</div>
+                        </button>
+                        <button class="template-btn" onclick="loadTemplate('joystick')">
+                            <div class="t-icon">🕹️</div>
+                            <div class="t-name">Joystick</div>
+                            <div class="t-desc">Analog stick input</div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LESSONS PANEL -->
+            <div class="sidebar-panel" id="panel-lessons">
+                <div class="section" id="lessons-list">
+                    <span class="section-label">Guided Lessons</span>
+                    <p style="font-size:0.75rem;color:var(--text-dimmer);margin-bottom:0.7rem;line-height:1.5;">
+                        Step-by-step projects that teach one concept at a time. Perfect for a grandparent-grandkid afternoon.
+                    </p>
+                    <div id="lessons-list-items"></div>
+                </div>
+                <div class="section" id="lessons-detail" style="display:none;">
+                    <button class="lesson-back" onclick="showLessonsList()">
+                        <i data-lucide="arrow-left" style="width:12px;height:12px;"></i> Back to lessons
+                    </button>
+                    <div id="lesson-detail-content"></div>
+                </div>
+            </div>
+
+            <!-- SNAP & CODE PANEL -->
+            <div class="sidebar-panel" id="panel-snap">
+                <div class="section">
+                    <span class="section-label">Snap &amp; Code</span>
+                    <p style="font-size:0.75rem;color:var(--text-dimmer);margin-bottom:0.7rem;line-height:1.5;">
+                        Take a photo of your breadboard — AI identifies the parts and writes code for what it sees.
+                    </p>
+
+                    <span class="section-label">Vision Provider</span>
+                    <div style="display:flex;gap:0.4rem;margin-bottom:0.6rem;">
+                        <button class="btn btn-sm btn-orange" id="snap-provider-gemini-btn" onclick="selectSnapProvider('gemini')" style="flex:1;">Gemini (free)</button>
+                        <button class="btn btn-sm" id="snap-provider-ollama-btn" onclick="selectSnapProvider('ollama')" style="flex:1;">Ollama (local)</button>
+                    </div>
+                    <div id="snap-ollama-row" style="display:none;margin-bottom:0.6rem;">
+                        <span class="section-label">Ollama Vision Model</span>
+                        <input type="text" id="snap-ollama-model" value="llava" placeholder="llava" style="width:100%;" title="Any vision-capable Ollama model you have pulled">
+                        <div style="font-size:0.65rem;color:var(--text-dimmer);margin-top:0.3rem;line-height:1.4;">
+                            Needs a vision model. Run <code style="background:var(--bg-input);padding:1px 4px;border-radius:3px;">ollama pull llava</code> in a terminal first. Other options: <code style="background:var(--bg-input);padding:1px 4px;border-radius:3px;">moondream</code>, <code style="background:var(--bg-input);padding:1px 4px;border-radius:3px;">llama3.2-vision</code>, <code style="background:var(--bg-input);padding:1px 4px;border-radius:3px;">llava-llama3</code>.
+                        </div>
+                    </div>
+
+                    <div style="display:flex;gap:0.5rem;margin-bottom:0.6rem;">
+                        <button class="btn btn-sm btn-orange" onclick="openCamera()" style="flex:1;">
+                            <i data-lucide="camera" style="width:12px;height:12px;"></i> Camera
+                        </button>
+                        <button class="btn btn-sm" onclick="document.getElementById('snap-file').click()" style="flex:1;">
+                            <i data-lucide="upload" style="width:12px;height:12px;"></i> Upload
+                        </button>
+                        <input type="file" id="snap-file" accept="image/*" capture="environment" style="display:none;" onchange="handlePhotoUpload(event)">
+                    </div>
+
+                    <video id="snap-video" autoplay playsinline muted style="display:none;width:100%;max-height:220px;background:#000;border-radius:6px;"></video>
+                    <canvas id="snap-canvas" style="display:none;"></canvas>
+
+                    <div id="snap-controls" style="display:none;gap:0.4rem;margin-top:0.5rem;">
+                        <button class="btn btn-sm btn-orange" onclick="snapPhoto()" style="flex:1;">
+                            <i data-lucide="aperture" style="width:12px;height:12px;"></i> Snap
+                        </button>
+                        <button class="btn btn-sm" onclick="closeCamera()" style="flex:1;">Cancel</button>
+                    </div>
+
+                    <img id="snap-preview" alt="Captured photo" style="display:none;width:100%;max-height:220px;object-fit:contain;border-radius:6px;margin-top:0.5rem;background:#000;">
+                </div>
+
+                <div class="section" id="snap-analyze-section" style="display:none;">
+                    <span class="section-label">What should it do? (optional)</span>
+                    <textarea id="snap-prompt" rows="3" placeholder="e.g. Blink the LED when the button is pressed"></textarea>
+                    <button class="btn btn-orange" onclick="analyzeSnap()" style="width:100%;margin-top:0.5rem;" id="snap-analyze-btn">
+                        <i data-lucide="wand-2" style="width:14px;height:14px;"></i> Analyze &amp; Generate Code
+                    </button>
+                </div>
+
+                <div class="section" id="snap-result-section" style="display:none;">
+                    <span class="section-label">AI Response</span>
+                    <div id="snap-result" style="font-size:0.75rem;white-space:pre-wrap;background:var(--bg-input);padding:0.6rem;border-radius:6px;max-height:320px;overflow-y:auto;line-height:1.5;"></div>
+                    <button class="btn btn-orange" onclick="insertSnapCode()" style="width:100%;margin-top:0.5rem;" id="snap-insert-btn" disabled>
+                        <i data-lucide="file-down" style="width:14px;height:14px;"></i> Insert Code Into Editor
+                    </button>
+                </div>
+            </div>
+
+            <!-- SETTINGS PANEL -->
+            <div class="sidebar-panel" id="panel-settings">
+                <div class="section">
+                    <span class="section-label">Editor</span>
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">Font Size</div>
+                            <div class="setting-desc">Code editor text size</div>
+                        </div>
+                        <input type="number" id="setting-fontsize" value="14" min="10" max="28" style="width:70px;" onchange="applySetting('fontSize', this.value)">
+                    </div>
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">Word Wrap</div>
+                            <div class="setting-desc">Wrap long lines</div>
+                        </div>
+                        <div class="toggle-switch on" id="toggle-wordwrap" onclick="toggleSetting('wordWrap')"></div>
+                    </div>
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">Minimap</div>
+                            <div class="setting-desc">Code overview sidebar</div>
+                        </div>
+                        <div class="toggle-switch" id="toggle-minimap" onclick="toggleSetting('minimap')"></div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <span class="section-label">Ollama</span>
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">Server URL</div>
+                            <div class="setting-desc">Where Ollama is running</div>
+                        </div>
+                        <input type="url" id="setting-ollama-url" value="http://localhost:11434" style="width:180px;font-size:0.75rem;" onchange="saveSettings()">
+                    </div>
+                </div>
+
+                <div class="section">
+                    <span class="section-label">API Keys</span>
+                    <p style="font-size:0.7rem;color:var(--text-dimmer);margin-bottom:0.5rem;line-height:1.4;">
+                        Keys are saved in your browser's local storage. They never leave your computer.
+                    </p>
+                    <div class="setting-row">
+                        <div class="setting-label">Claude</div>
+                        <input type="password" id="setting-key-claude" placeholder="sk-ant-..." style="width:180px;font-size:0.75rem;" onchange="saveSettings()">
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-label">Gemini</div>
+                        <input type="password" id="setting-key-gemini" placeholder="AIza..." style="width:180px;font-size:0.75rem;" onchange="saveSettings()">
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-label">OpenAI</div>
+                        <input type="password" id="setting-key-openai" placeholder="sk-..." style="width:180px;font-size:0.75rem;" onchange="saveSettings()">
+                    </div>
+                </div>
+
+                <div class="section">
+                    <span class="section-label">Workspace</span>
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">Autosave</div>
+                            <div class="setting-desc">Save sketch to browser every keystroke</div>
+                        </div>
+                        <div class="toggle-switch on" id="toggle-autosave" onclick="toggleSetting('autosave')"></div>
+                    </div>
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">Clear autosave</div>
+                            <div class="setting-desc">Forget the current draft</div>
+                        </div>
+                        <button class="btn btn-sm" onclick="clearAutosave()">Clear</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <span class="section-label">About</span>
+                    <p style="font-size:0.75rem;color:var(--text-dim);line-height:1.7;">
+                        <strong style="color:var(--orange);">Coding with Grandma v0.4</strong><br>
+                        <span style="color:var(--text-dimmer);">ESP32 Edition</span><br><br>
+                        A 100% browser-based IDE for ESP32.<br>
+                        No installs. No accounts. No fees.<br>
+                        Built with Monaco Editor, Web Serial API, esptool-js, and your choice of AI.<br><br>
+                        <a href="index.html" style="color:var(--orange);">Prompt Builder</a> &middot;
+                        <a href="https://github.com/ericwootten-dotcom/ESP32-AIIDE" style="color:var(--blue);" target="_blank">GitHub</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- CENTER: CODE EDITOR -->
+        <div class="editor-area" style="position:relative;">
+            <div class="editor-tabs">
+                <div class="editor-tab active">sketch.ino</div>
+            </div>
+            <div id="editor-container"></div>
+
+            <div class="loading-overlay" id="loading-overlay">
+                <div class="loading-spinner-lg"></div>
+                <div class="loading-text" id="loading-text">Generating code with AI...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RESIZE HANDLE -->
+    <div class="resize-handle" id="resize-handle"></div>
+
+    <!-- BOTTOM PANEL -->
+    <div class="bottom-panel" id="bottom-panel">
+        <div class="bottom-tabs">
+            <div class="bottom-tabs-left">
+                <button class="bottom-tab active">Serial Monitor</button>
+                <button class="bottom-tab">Output</button>
+            </div>
+            <div class="bottom-tabs-right">
+                <select class="baud-select" id="baud-rate">
+                    <option value="9600">9600 baud</option>
+                    <option value="115200" selected>115200 baud</option>
+                    <option value="57600">57600 baud</option>
+                </select>
+                <button class="btn btn-sm" onclick="clearSerial()">Clear</button>
+            </div>
+        </div>
+        <div class="serial-output" id="serial-output">
+            <div class="sys-msg">Coding with Grandma v0.4 — Serial Monitor ready.</div>
+            <div class="sys-msg">Click "Connect" to talk to your ESP32, or "Flash" to upload firmware.</div>
+        </div>
+        <div class="serial-input-row">
+            <input type="text" id="serial-input" placeholder="Type a message to send to the board..." onkeydown="if(event.key==='Enter')sendSerial()">
+            <button onclick="sendSerial()">Send</button>
+        </div>
+    </div>
+
+    <!-- CONNECT MODAL -->
+    <div class="modal-overlay" id="connect-modal">
+        <div class="modal">
+            <h2>Connect Your ESP32</h2>
+            <p>
+                Plug your ESP32 into your computer with a USB cable. Then click
+                "Select Port" below. Your browser will ask you to pick a serial
+                port — choose the one that appears (it usually says "USB" or
+                "CP210x" or "CH340" in the name).
+            </p>
+            <p>
+                <strong style="color:var(--orange);">First time?</strong> You may need a USB driver.
+                Most ESP32 boards use the CP2102 or CH340 chip. Search
+                for "[your chip name] driver download" if the board doesn't show up.
+            </p>
+            <div class="modal-actions">
+                <button class="btn" onclick="closeConnectModal()">Cancel</button>
+                <button class="btn btn-orange" onclick="selectSerialPort()">
+                    <i data-lucide="usb" style="width:14px;height:14px;"></i> Select Port
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FLASH FIRMWARE MODAL -->
+    <div class="modal-overlay" id="flash-modal">
+        <div class="modal" style="max-width:540px;">
+            <h2><i data-lucide="zap" style="width:18px;height:18px;vertical-align:-3px;color:var(--orange);"></i> Flash ESP32 Firmware</h2>
+            <p class="hint">
+                Upload a precompiled <code>.bin</code> file directly from your browser — no Arduino IDE needed.
+                Disconnect the serial monitor first if it's open. Flashing works in Chrome and Edge.
+            </p>
+            <p class="hint">
+                <strong style="color:var(--gold);">Don't have a .bin yet?</strong> Compile your sketch in Arduino IDE
+                (Sketch → Export Compiled Binary), then pick the generated <code>.bin</code> file here. Full in-browser
+                compilation is on the roadmap.
+            </p>
+            <div class="flash-row">
+                <label>Firmware file (.bin)</label>
+                <input type="file" id="flash-bin-file" accept=".bin">
+            </div>
+            <div class="flash-row">
+                <label>Flash offset (hex)</label>
+                <input type="text" id="flash-offset" value="0x10000" style="font-family:ui-monospace,monospace;">
+                <select id="flash-baud">
+                    <option value="115200">115200 baud</option>
+                    <option value="230400">230400</option>
+                    <option value="460800">460800</option>
+                    <option value="921600" selected>921600 (fast)</option>
+                </select>
+            </div>
+            <p class="hint">Default offset <code>0x10000</code> is the standard app partition for the Arduino ESP32 core. Advanced users can change it.</p>
+            <div class="progress-wrap"><div class="progress-bar" id="flash-progress"></div></div>
+            <div class="progress-text" id="flash-progress-text">Ready.</div>
+            <div class="flash-log" id="flash-log" style="display:none;"></div>
+            <div class="modal-actions">
+                <button class="btn" onclick="closeFlashModal()">Close</button>
+                <button class="btn btn-orange" id="flash-start-btn" onclick="startFlash()">
+                    <i data-lucide="zap" style="width:14px;height:14px;"></i> Start Flash
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MONACO EDITOR -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+
+    <script>
+        // ================================================================
+        // STATE
+        // ================================================================
+        var editor = null;
+        var serialPort = null;
+        var serialReader = null;
+        var serialWriter = null;
+        var isConnected = false;
+        var currentProvider = 'ollama';
+        var lastGeneratedCode = '';
+        var isGenerating = false;
+        var isFlashing = false;
+        var espLoader = null;
+        var espTransport = null;
+        var currentLessonId = null;
+        var currentLessonStep = 0;
+        var autosaveTimer = null;
+
+        var settings = JSON.parse(localStorage.getItem('cwg-settings') || '{}');
+        if (typeof settings.autosave === 'undefined') settings.autosave = true;
+
+        // ================================================================
+        // SETTINGS
+        // ================================================================
+        function loadSettings() {
+            if (settings.ollamaUrl) document.getElementById('setting-ollama-url').value = settings.ollamaUrl;
+            if (settings.fontSize) document.getElementById('setting-fontsize').value = settings.fontSize;
+            if (settings.keys) {
+                if (settings.keys.claude) document.getElementById('setting-key-claude').value = settings.keys.claude;
+                if (settings.keys.gemini) document.getElementById('setting-key-gemini').value = settings.keys.gemini;
+                if (settings.keys.openai) document.getElementById('setting-key-openai').value = settings.keys.openai;
+            }
+            var autosaveToggle = document.getElementById('toggle-autosave');
+            if (autosaveToggle) {
+                if (settings.autosave) autosaveToggle.classList.add('on');
+                else autosaveToggle.classList.remove('on');
+            }
+            if (settings.provider) selectProvider(settings.provider, true);
+            updateProviderStatuses();
+        }
+
+        function saveSettings() {
+            var urlEl = document.getElementById('setting-ollama-url');
+            var fsEl = document.getElementById('setting-fontsize');
+            if (urlEl) settings.ollamaUrl = urlEl.value;
+            if (fsEl) settings.fontSize = parseInt(fsEl.value) || 14;
+            settings.provider = currentProvider;
+            var kc = document.getElementById('setting-key-claude');
+            var kg = document.getElementById('setting-key-gemini');
+            var ko = document.getElementById('setting-key-openai');
+            settings.keys = {
+                claude: kc ? kc.value : (settings.keys && settings.keys.claude) || '',
+                gemini: kg ? kg.value : (settings.keys && settings.keys.gemini) || '',
+                openai: ko ? ko.value : (settings.keys && settings.keys.openai) || ''
+            };
+            var autoEl = document.getElementById('toggle-autosave');
+            if (autoEl) settings.autosave = autoEl.classList.contains('on');
+            localStorage.setItem('cwg-settings', JSON.stringify(settings));
+            updateProviderStatuses();
+        }
+
+        function applySetting(key, value) {
+            if (!editor) return;
+            if (key === 'fontSize') editor.updateOptions({ fontSize: parseInt(value) });
+            saveSettings();
+        }
+
+        function toggleSetting(key) {
+            var el;
+            if (key === 'wordWrap') {
+                el = document.getElementById('toggle-wordwrap');
+                el.classList.toggle('on');
+                if (editor) editor.updateOptions({ wordWrap: el.classList.contains('on') ? 'on' : 'off' });
+            } else if (key === 'minimap') {
+                el = document.getElementById('toggle-minimap');
+                el.classList.toggle('on');
+                if (editor) editor.updateOptions({ minimap: { enabled: el.classList.contains('on') } });
+            } else if (key === 'autosave') {
+                el = document.getElementById('toggle-autosave');
+                el.classList.toggle('on');
+                settings.autosave = el.classList.contains('on');
+            }
+            saveSettings();
+        }
+
+        // ================================================================
+        // AI PROVIDERS
+        // ================================================================
+        function selectProvider(name, silent) {
+            currentProvider = name;
+            document.querySelectorAll('.provider-card').forEach(function(c) { c.classList.remove('selected'); });
+            var card = document.getElementById('provider-' + name);
+            if (card) card.classList.add('selected');
+
+            var keyArea = document.getElementById('key-input-area');
+            var modelSection = document.getElementById('ollama-model-section');
+
+            if (name === 'ollama') {
+                keyArea.classList.remove('visible');
+                modelSection.style.display = '';
+            } else {
+                keyArea.classList.add('visible');
+                modelSection.style.display = 'none';
+
+                var labels = { claude: 'Claude API Key', gemini: 'Gemini API Key', openai: 'OpenAI API Key' };
+                var placeholders = { claude: 'sk-ant-api03-...', gemini: 'AIzaSy...', openai: 'sk-proj-...' };
+                var helps = {
+                    claude: 'Get yours at console.anthropic.com',
+                    gemini: 'Get yours at aistudio.google.com',
+                    openai: 'Get yours at platform.openai.com'
+                };
+
+                document.getElementById('key-label').textContent = labels[name] || 'API Key';
+                document.getElementById('api-key-input').placeholder = placeholders[name] || '';
+                document.getElementById('key-help').textContent = helps[name] + ' — stored locally, never shared.';
+
+                var savedKey = (settings.keys && settings.keys[name]) || '';
+                document.getElementById('api-key-input').value = savedKey;
+            }
+
+            if (!silent) saveSettings();
+        }
+
+        function saveApiKey() {
+            var key = document.getElementById('api-key-input').value.trim();
+            if (!key) return;
+            if (!settings.keys) settings.keys = {};
+            settings.keys[currentProvider] = key;
+            var sf = document.getElementById('setting-key-' + currentProvider);
+            if (sf) sf.value = key;
+            saveSettings();
+            serialLog('API key saved for ' + currentProvider + '.', 'sys');
+        }
+
+        function updateProviderStatuses() {
+            checkOllama();
+            ['claude', 'gemini', 'openai'].forEach(function(name) {
+                var el = document.getElementById(name + '-status');
+                var key = settings.keys && settings.keys[name];
+                if (key) { el.textContent = 'Ready'; el.className = 'provider-status ready'; }
+                else { el.textContent = 'Needs Key'; el.className = 'provider-status needs-key'; }
+            });
+        }
+
+        function checkOllama() {
+            var url = (settings.ollamaUrl || 'http://localhost:11434');
+            var el = document.getElementById('ollama-status');
+            el.textContent = 'Checking'; el.className = 'provider-status checking';
+
+            fetch(url + '/api/tags', { signal: AbortSignal.timeout(3000) })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.models && data.models.length > 0) {
+                        el.textContent = data.models.length + ' models';
+                        el.className = 'provider-status ready';
+                        var select = document.getElementById('ollama-model');
+                        var cur = select.value;
+                        select.innerHTML = '';
+                        data.models.forEach(function(m) {
+                            var opt = document.createElement('option');
+                            opt.value = m.name; opt.textContent = m.name;
+                            select.appendChild(opt);
+                        });
+                        if ([...select.options].some(function(o) { return o.value === cur; })) select.value = cur;
+                        serialLog('Ollama connected — ' + data.models.length + ' model(s) found.', 'sys');
+                    } else {
+                        el.textContent = 'No models'; el.className = 'provider-status needs-key';
+                    }
+                })
+                .catch(function() { el.textContent = 'Offline'; el.className = 'provider-status needs-key'; });
+        }
+
+        // ================================================================
+        // AI GENERATION
+        // ================================================================
+        function buildSystemPrompt() {
+            return 'You are an expert ESP32 Arduino programmer helping a beginner. Generate complete, working Arduino code. ' +
+                'Always include all #include statements. Define pin numbers as named constants. ' +
+                'Add clear, beginner-friendly comments explaining what each section does. ' +
+                'The code must compile and run on an ESP32. Return ONLY the code, no explanations.';
+        }
+
+        function buildUserPrompt() {
+            var desc = document.getElementById('ai-prompt').value.trim();
+            var board = document.getElementById('ai-board').value;
+            var components = document.getElementById('ai-components').value.trim();
+            var prompt = 'Write complete Arduino code for an ' + board + ':\n\n' + desc + '\n\n';
+            prompt += 'Board: ' + board + '\nFramework: Arduino\n';
+            if (components) prompt += 'Components: ' + components + '\n';
+            prompt += '\nProvide complete, compilable code in a single file.';
+            return prompt;
+        }
+
+        async function generateWithAI() {
+            var desc = document.getElementById('ai-prompt').value.trim();
+            if (!desc) { alert('Please describe what you want the ESP32 to do!'); return; }
+            if (isGenerating) return;
+
+            var responseArea = document.getElementById('ai-response');
+            var genBtn = document.getElementById('generate-btn');
+            var insertBtn = document.getElementById('insert-code-btn');
+
+            isGenerating = true;
+            genBtn.disabled = true;
+            genBtn.innerHTML = '<span class="loading-spinner"></span> Generating...';
+            responseArea.innerHTML = '<span class="thinking">Thinking...</span>';
+            responseArea.classList.remove('has-content');
+            insertBtn.style.display = 'none';
+            lastGeneratedCode = '';
+
+            try {
+                if (currentProvider === 'ollama') await generateOllama(responseArea);
+                else if (currentProvider === 'claude') await generateClaude(responseArea);
+                else if (currentProvider === 'gemini') await generateGemini(responseArea);
+                else if (currentProvider === 'openai') await generateOpenAI(responseArea);
+
+                if (lastGeneratedCode) {
+                    insertBtn.style.display = '';
+                    serialLog('Code generated! Click "Insert Code" to use it.', 'sys');
+                }
+            } catch (err) {
+                responseArea.innerHTML = '<span style="color:var(--red);">Error: ' + err.message + '</span>';
+                serialLog('AI error: ' + err.message, 'err');
+            }
+
+            isGenerating = false;
+            genBtn.disabled = false;
+            genBtn.innerHTML = '<i data-lucide="sparkles" style="width:16px;height:16px;"></i> Generate Code with AI';
+            lucide.createIcons();
+        }
+
+        async function generateOllama(ra) {
+            var url = (settings.ollamaUrl || 'http://localhost:11434');
+            var model = document.getElementById('ollama-model').value || 'codellama';
+            var res = await fetch(url + '/api/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ model: model, prompt: buildSystemPrompt() + '\n\n' + buildUserPrompt(), stream: true })
+            });
+            if (!res.ok) throw new Error('Ollama returned ' + res.status + '. Is it running?');
+            var reader = res.body.getReader();
+            var decoder = new TextDecoder();
+            var fullText = '';
+            ra.innerHTML = ''; ra.classList.add('has-content');
+            while (true) {
+                var chunk = await reader.read();
+                if (chunk.done) break;
+                var lines = decoder.decode(chunk.value, { stream: true }).split('\n').filter(Boolean);
+                for (var i = 0; i < lines.length; i++) {
+                    try { var j = JSON.parse(lines[i]); if (j.response) { fullText += j.response; ra.textContent = fullText; ra.scrollTop = ra.scrollHeight; } } catch(e) {}
+                }
+            }
+            lastGeneratedCode = extractCode(fullText);
+        }
+
+        async function generateClaude(ra) {
+            var key = settings.keys && settings.keys.claude;
+            if (!key) throw new Error('No Claude API key. Add one in Settings.');
+            var res = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+                body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 4096, system: buildSystemPrompt(), messages: [{ role: 'user', content: buildUserPrompt() }] })
+            });
+            if (!res.ok) { var e = await res.text(); throw new Error('Claude error ' + res.status + ': ' + e.substring(0, 200)); }
+            var data = await res.json();
+            var fullText = data.content.map(function(c) { return c.text; }).join('');
+            ra.textContent = fullText; ra.classList.add('has-content');
+            lastGeneratedCode = extractCode(fullText);
+        }
+
+        async function generateGemini(ra) {
+            var key = settings.keys && settings.keys.gemini;
+            if (!key) throw new Error('No Gemini API key. Add one in Settings.');
+            var res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ parts: [{ text: buildSystemPrompt() + '\n\n' + buildUserPrompt() }] }] })
+            });
+            if (!res.ok) { var e = await res.text(); throw new Error('Gemini error ' + res.status + ': ' + e.substring(0, 200)); }
+            var data = await res.json();
+            var fullText = (data.candidates && data.candidates[0] && data.candidates[0].content) ? data.candidates[0].content.parts.map(function(p) { return p.text; }).join('') : '';
+            ra.textContent = fullText; ra.classList.add('has-content');
+            lastGeneratedCode = extractCode(fullText);
+        }
+
+        async function generateOpenAI(ra) {
+            var key = settings.keys && settings.keys.openai;
+            if (!key) throw new Error('No OpenAI API key. Add one in Settings.');
+            var res = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+                body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: buildSystemPrompt() }, { role: 'user', content: buildUserPrompt() }], max_tokens: 4096 })
+            });
+            if (!res.ok) { var e = await res.text(); throw new Error('OpenAI error ' + res.status + ': ' + e.substring(0, 200)); }
+            var data = await res.json();
+            var fullText = data.choices[0].message.content;
+            ra.textContent = fullText; ra.classList.add('has-content');
+            lastGeneratedCode = extractCode(fullText);
+        }
+
+        function extractCode(text) {
+            var match = text.match(/```(?:cpp|c\+\+|arduino|ino)?\s*\n([\s\S]*?)```/);
+            if (match) return match[1].trim();
+            if (text.includes('void setup()') || text.includes('#include')) {
+                var lines = text.split('\n'); var s = -1, e = lines.length;
+                for (var i = 0; i < lines.length; i++) {
+                    if (lines[i].match(/^(#include|\/\/|\/\*|const |int |void |float |String |char |bool |unsigned )/)) { if (s === -1) s = i; e = i + 1; }
+                }
+                if (s >= 0) return lines.slice(s, e).join('\n').trim();
+            }
+            return text.trim();
+        }
+
+        function insertGeneratedCode() {
+            if (lastGeneratedCode && editor) { editor.setValue(lastGeneratedCode); serialLog('AI code inserted into editor.', 'sys'); }
+        }
+
+        // ================================================================
+        // SNAP & CODE — camera → Gemini or Ollama Vision → code
+        // ================================================================
+        var snapStream = null;
+        var snapImageB64 = null;
+        var snapImageMime = 'image/jpeg';
+        var snapGeneratedCode = null;
+        var snapProvider = (function() {
+            try { return localStorage.getItem('cwg-snap-provider') || 'gemini'; } catch (e) { return 'gemini'; }
+        })();
+
+        function selectSnapProvider(p) {
+            snapProvider = p;
+            try { localStorage.setItem('cwg-snap-provider', p); } catch (e) {}
+            var gBtn = document.getElementById('snap-provider-gemini-btn');
+            var oBtn = document.getElementById('snap-provider-ollama-btn');
+            var oRow = document.getElementById('snap-ollama-row');
+            if (gBtn && oBtn) {
+                gBtn.classList.toggle('btn-orange', p === 'gemini');
+                oBtn.classList.toggle('btn-orange', p === 'ollama');
+            }
+            if (oRow) oRow.style.display = (p === 'ollama') ? 'block' : 'none';
+        }
+
+        async function openCamera() {
+            try {
+                snapStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: { ideal: 'environment' } },
+                    audio: false
+                });
+                var video = document.getElementById('snap-video');
+                video.srcObject = snapStream;
+                video.style.display = 'block';
+                document.getElementById('snap-controls').style.display = 'flex';
+                document.getElementById('snap-preview').style.display = 'none';
+            } catch (e) {
+                alert('Camera not available: ' + (e && e.message ? e.message : e) + '\n\nTip: On desktop, allow camera access in the URL bar. On a phone, try the Upload button instead.');
+            }
+        }
+
+        function closeCamera() {
+            if (snapStream) {
+                snapStream.getTracks().forEach(function(t) { t.stop(); });
+                snapStream = null;
+            }
+            var v = document.getElementById('snap-video');
+            if (v) { v.srcObject = null; v.style.display = 'none'; }
+            var c = document.getElementById('snap-controls');
+            if (c) c.style.display = 'none';
+        }
+
+        function snapPhoto() {
+            var video = document.getElementById('snap-video');
+            var canvas = document.getElementById('snap-canvas');
+            canvas.width = video.videoWidth || 1280;
+            canvas.height = video.videoHeight || 720;
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            var dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            snapImageB64 = dataUrl.split(',')[1];
+            snapImageMime = 'image/jpeg';
+            showSnapPreview(dataUrl);
+            closeCamera();
+        }
+
+        function handlePhotoUpload(event) {
+            var file = event.target.files && event.target.files[0];
+            if (!file) return;
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var dataUrl = e.target.result;
+                snapImageB64 = dataUrl.split(',')[1];
+                snapImageMime = file.type || 'image/jpeg';
+                showSnapPreview(dataUrl);
+            };
+            reader.readAsDataURL(file);
+            event.target.value = '';
+        }
+
+        function showSnapPreview(dataUrl) {
+            var img = document.getElementById('snap-preview');
+            img.src = dataUrl;
+            img.style.display = 'block';
+            document.getElementById('snap-analyze-section').style.display = 'block';
+            document.getElementById('snap-result-section').style.display = 'none';
+            snapGeneratedCode = null;
+            var btn = document.getElementById('snap-insert-btn');
+            if (btn) btn.disabled = true;
+        }
+
+        function buildSnapPrompt() {
+            var userPrompt = (document.getElementById('snap-prompt').value || '').trim();
+            var boardEl = document.getElementById('ai-board');
+            var board = boardEl ? boardEl.value : 'ESP32 DevKit v1';
+
+            var system = 'You are a helpful ESP32 hardware assistant for beginners. The user shared a photo of their breadboard and components. Your job: ' +
+                '(1) list the components and wiring you can see, as precisely as possible, ' +
+                '(2) note the pin connections if visible, ' +
+                '(3) write a complete Arduino-style ESP32 sketch that works with what is shown, with plain-English beginner comments on every section. ' +
+                'Target board: ' + board + '. ' +
+                'If you spot anything unsafe (shorts, reversed polarity, missing current-limiting resistors on LEDs, etc.) warn clearly BEFORE the code. ' +
+                'Wrap the code in a single ```cpp fenced block.';
+
+            var userText = userPrompt
+                ? ('Goal: ' + userPrompt)
+                : 'Describe what you see in the photo, then write code that does something useful with these exact parts.';
+
+            return { system: system, user: userText };
+        }
+
+        async function analyzeSnap() {
+            if (!snapImageB64) { alert('Take or upload a photo first.'); return; }
+
+            var analyzeBtn = document.getElementById('snap-analyze-btn');
+            var resultEl = document.getElementById('snap-result');
+            var insertBtn = document.getElementById('snap-insert-btn');
+            document.getElementById('snap-result-section').style.display = 'block';
+            resultEl.textContent = 'Analyzing photo with ' + snapProvider + '...';
+            if (analyzeBtn) { analyzeBtn.disabled = true; }
+            insertBtn.disabled = true;
+
+            try {
+                var text = '';
+                if (snapProvider === 'ollama') {
+                    text = await analyzeSnapViaOllama(resultEl);
+                } else {
+                    text = await analyzeSnapViaGemini();
+                }
+                resultEl.textContent = text || '(no response)';
+                snapGeneratedCode = extractCode(text);
+                insertBtn.disabled = !(snapGeneratedCode && snapGeneratedCode.length > 0);
+            } catch (e) {
+                resultEl.textContent = 'Error: ' + (e && e.message ? e.message : e);
+            } finally {
+                if (analyzeBtn) { analyzeBtn.disabled = false; }
+            }
+        }
+
+        async function analyzeSnapViaGemini() {
+            var key = settings.keys && settings.keys.gemini;
+            if (!key) {
+                throw new Error('No Gemini API key. Open the Settings tab, paste your key into the Gemini field (get a free one at aistudio.google.com/apikey).');
+            }
+            var p = buildSnapPrompt();
+            var res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + encodeURIComponent(key), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [
+                            { text: p.system + '\n\n' + p.user },
+                            { inline_data: { mime_type: snapImageMime, data: snapImageB64 } }
+                        ]
+                    }]
+                })
+            });
+            if (!res.ok) {
+                var err = await res.text();
+                throw new Error('Gemini ' + res.status + ': ' + err.substring(0, 300));
+            }
+            var data = await res.json();
+            return (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts)
+                ? data.candidates[0].content.parts.map(function(pp) { return pp.text || ''; }).join('')
+                : '';
+        }
+
+        async function analyzeSnapViaOllama(resultEl) {
+            var url = (settings.ollamaUrl || 'http://localhost:11434');
+            var modelEl = document.getElementById('snap-ollama-model');
+            var model = (modelEl && modelEl.value) ? modelEl.value.trim() : 'llava';
+            if (!model) model = 'llava';
+            var p = buildSnapPrompt();
+
+            var res = await fetch(url + '/api/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: model,
+                    prompt: p.system + '\n\n' + p.user,
+                    images: [snapImageB64],
+                    stream: true
+                })
+            });
+            if (!res.ok) {
+                var err = await res.text();
+                throw new Error('Ollama ' + res.status + ': ' + err.substring(0, 300) + ' — is Ollama running and is the model "' + model + '" pulled?');
+            }
+            var reader = res.body.getReader();
+            var decoder = new TextDecoder();
+            var fullText = '';
+            if (resultEl) { resultEl.textContent = ''; }
+            while (true) {
+                var chunk = await reader.read();
+                if (chunk.done) break;
+                var lines = decoder.decode(chunk.value, { stream: true }).split('\n').filter(Boolean);
+                for (var i = 0; i < lines.length; i++) {
+                    try {
+                        var j = JSON.parse(lines[i]);
+                        if (j.response) {
+                            fullText += j.response;
+                            if (resultEl) { resultEl.textContent = fullText; resultEl.scrollTop = resultEl.scrollHeight; }
+                        }
+                    } catch (e) {}
+                }
+            }
+            return fullText;
+        }
+
+        function insertSnapCode() {
+            if (snapGeneratedCode && editor) {
+                editor.setValue(snapGeneratedCode);
+                serialLog('Snap & Code: inserted AI-generated sketch into editor.', 'sys');
+            }
+        }
+
+        // ================================================================
+        // SIDEBAR TABS
+        // ================================================================
+        function switchSidebarTab(tab) {
+            document.querySelectorAll('.sidebar-tab').forEach(function(t) { t.classList.remove('active'); });
+            document.querySelectorAll('.sidebar-panel').forEach(function(p) { p.classList.remove('active'); });
+            var tabs = document.querySelectorAll('.sidebar-tab');
+            var idx = { ai: 0, templates: 1, lessons: 2, snap: 3, settings: 4 }[tab];
+            if (tabs[idx]) tabs[idx].classList.add('active');
+            var panel = document.getElementById('panel-' + tab);
+            if (panel) panel.classList.add('active');
+            if (tab === 'lessons') renderLessonsList();
+            if (tab === 'snap') selectSnapProvider(snapProvider);
+        }
+
+        function toggleMobileSidebar() {
+            var sb = document.querySelector('.sidebar');
+            if (sb) sb.classList.toggle('mobile-open');
+        }
+
+        // ================================================================
+        // TEMPLATES
+        // ================================================================
+        var templates = {
+            blink: '/*\n * Blink LED — Coding with Grandma Starter Template\n * \n * What it does: Blinks the built-in LED on and off every second.\n * Wiring: No extra wiring needed! Uses the onboard LED.\n */\n\nconst int LED_PIN = 2;\n\nvoid setup() {\n    Serial.begin(115200);\n    Serial.println("Blink LED program starting!");\n    pinMode(LED_PIN, OUTPUT);\n}\n\nvoid loop() {\n    digitalWrite(LED_PIN, HIGH);\n    Serial.println("LED is ON");\n    delay(1000);\n    \n    digitalWrite(LED_PIN, LOW);\n    Serial.println("LED is OFF");\n    delay(1000);\n}',
+
+            button: '/*\n * Button Input — Coding with Grandma Starter Template\n * \n * What it does: Reads a button and turns on an LED when pressed.\n * Wiring: Button between pin 4 and GND. LED on pin 2.\n */\n\nconst int BUTTON_PIN = 4;\nconst int LED_PIN = 2;\n\nvoid setup() {\n    Serial.begin(115200);\n    Serial.println("Button + LED program starting!");\n    pinMode(BUTTON_PIN, INPUT_PULLUP);\n    pinMode(LED_PIN, OUTPUT);\n}\n\nvoid loop() {\n    int buttonState = digitalRead(BUTTON_PIN);\n    if (buttonState == LOW) {\n        digitalWrite(LED_PIN, HIGH);\n        Serial.println("Button pressed! LED ON");\n    } else {\n        digitalWrite(LED_PIN, LOW);\n    }\n    delay(50);\n}',
+
+            wifi: '/*\n * WiFi Connect — Coding with Grandma Starter Template\n * \n * What it does: Connects the ESP32 to your WiFi network.\n * Wiring: No extra wiring needed.\n */\n\n#include <WiFi.h>\n\nconst char* WIFI_NAME = "YourWiFiName";\nconst char* WIFI_PASSWORD = "YourWiFiPassword";\n\nvoid setup() {\n    Serial.begin(115200);\n    Serial.println("WiFi Connect starting!");\n    Serial.print("Connecting to ");\n    Serial.println(WIFI_NAME);\n    WiFi.begin(WIFI_NAME, WIFI_PASSWORD);\n    while (WiFi.status() != WL_CONNECTED) {\n        delay(500);\n        Serial.print(".");\n    }\n    Serial.println();\n    Serial.println("Connected!");\n    Serial.print("IP: ");\n    Serial.println(WiFi.localIP());\n}\n\nvoid loop() {\n    if (WiFi.status() == WL_CONNECTED) {\n        Serial.println("WiFi OK — IP: " + WiFi.localIP().toString());\n    } else {\n        Serial.println("Disconnected! Reconnecting...");\n        WiFi.reconnect();\n    }\n    delay(5000);\n}',
+
+            temperature: '/*\n * Temperature Sensor — Coding with Grandma Starter Template\n * \n * What it does: Reads temperature from a DHT22 sensor.\n * Wiring: DHT22 data to GPIO 4, VCC to 3.3V, GND to GND.\n */\n\n#include <DHT.h>\n\nconst int DHT_PIN = 4;\nconst int DHT_TYPE = DHT22;\nDHT dht(DHT_PIN, DHT_TYPE);\n\nvoid setup() {\n    Serial.begin(115200);\n    Serial.println("Temperature Sensor starting!");\n    dht.begin();\n}\n\nvoid loop() {\n    delay(2000);\n    float humidity = dht.readHumidity();\n    float tempC = dht.readTemperature();\n    float tempF = dht.readTemperature(true);\n    if (isnan(humidity) || isnan(tempC)) {\n        Serial.println("Error reading sensor!");\n        return;\n    }\n    Serial.print("Temp: ");\n    Serial.print(tempF);\n    Serial.print("F (");\n    Serial.print(tempC);\n    Serial.print("C) | Humidity: ");\n    Serial.print(humidity);\n    Serial.println("%");\n}',
+
+            servo: '/*\n * Servo Motor — Coding with Grandma Starter Template\n * \n * What it does: Sweeps a servo motor back and forth.\n * Wiring: Signal to GPIO 13, VCC to 5V, GND to GND.\n */\n\n#include <ESP32Servo.h>\n\nconst int SERVO_PIN = 13;\nServo myServo;\n\nvoid setup() {\n    Serial.begin(115200);\n    Serial.println("Servo Motor starting!");\n    myServo.attach(SERVO_PIN);\n}\n\nvoid loop() {\n    for (int angle = 0; angle <= 180; angle += 5) {\n        myServo.write(angle);\n        Serial.print("Angle: ");\n        Serial.println(angle);\n        delay(50);\n    }\n    for (int angle = 180; angle >= 0; angle -= 5) {\n        myServo.write(angle);\n        Serial.print("Angle: ");\n        Serial.println(angle);\n        delay(50);\n    }\n}',
+
+            webserver: '/*\n * Web Server — Coding with Grandma Starter Template\n * \n * What it does: Creates a web page to control an LED from your phone.\n * Wiring: Uses the built-in LED on pin 2.\n */\n\n#include <WiFi.h>\n#include <WebServer.h>\n\nconst char* WIFI_NAME = "YourWiFiName";\nconst char* WIFI_PASSWORD = "YourWiFiPassword";\nconst int LED_PIN = 2;\nWebServer server(80);\n\nString htmlPage() {\n    String p = "<!DOCTYPE html><html><head>";\n    p += "<meta name=viewport content=width=device-width>";\n    p += "<style>body{font-family:sans-serif;text-align:center;padding:2em;}";\n    p += "a{display:inline-block;padding:1em 2em;margin:0.5em;border-radius:8px;";\n    p += "text-decoration:none;color:white;font-size:1.2em;}";\n    p += ".on{background:#22c55e;} .off{background:#ef4444;}</style></head>";\n    p += "<body><h1>ESP32 LED Control</h1>";\n    p += "<a href=/on class=on>Turn ON</a>";\n    p += "<a href=/off class=off>Turn OFF</a></body></html>";\n    return p;\n}\n\nvoid setup() {\n    Serial.begin(115200);\n    pinMode(LED_PIN, OUTPUT);\n    WiFi.begin(WIFI_NAME, WIFI_PASSWORD);\n    Serial.print("Connecting to WiFi");\n    while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print("."); }\n    Serial.println();\n    Serial.print("Open: http://");\n    Serial.println(WiFi.localIP());\n    server.on("/", []() { server.send(200, "text/html", htmlPage()); });\n    server.on("/on", []() { digitalWrite(LED_PIN, HIGH); Serial.println("LED ON"); server.send(200, "text/html", htmlPage()); });\n    server.on("/off", []() { digitalWrite(LED_PIN, LOW); Serial.println("LED OFF"); server.send(200, "text/html", htmlPage()); });\n    server.begin();\n}\n\nvoid loop() { server.handleClient(); }',
+
+            oled: '/*\n * OLED Display — Coding with Grandma Starter Template\n * \n * What it does: Shows text on a 128x64 OLED screen.\n * Wiring: SDA to GPIO 21, SCL to GPIO 22, VCC to 3.3V, GND to GND.\n */\n\n#include <Wire.h>\n#include <Adafruit_GFX.h>\n#include <Adafruit_SSD1306.h>\n\n#define SCREEN_WIDTH 128\n#define SCREEN_HEIGHT 64\nAdafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);\n\nint counter = 0;\n\nvoid setup() {\n    Serial.begin(115200);\n    if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {\n        Serial.println("OLED not found!");\n        while (true);\n    }\n    display.clearDisplay();\n    display.setTextSize(2);\n    display.setTextColor(SSD1306_WHITE);\n    display.setCursor(0, 0);\n    display.println("Coding");\n    display.println("w/ Grandma");\n    display.display();\n}\n\nvoid loop() {\n    counter++;\n    display.clearDisplay();\n    display.setTextSize(1);\n    display.setCursor(0, 0);\n    display.println("Coding with Grandma");\n    display.setTextSize(2);\n    display.setCursor(0, 20);\n    display.print("Count: ");\n    display.println(counter);\n    display.display();\n    delay(1000);\n}',
+
+            neopixel: '/*\n * NeoPixel RGB LEDs — Coding with Grandma Starter Template\n * \n * What it does: Creates a rainbow color chase on a NeoPixel strip.\n * Wiring: Data to GPIO 5, VCC to 5V, GND to GND.\n */\n\n#include <Adafruit_NeoPixel.h>\n\nconst int PIXEL_PIN = 5;\nconst int NUM_PIXELS = 8;\n\nAdafruit_NeoPixel strip(NUM_PIXELS, PIXEL_PIN, NEO_GRB + NEO_KHZ800);\n\nvoid setup() {\n    Serial.begin(115200);\n    Serial.println("NeoPixel starting!");\n    strip.begin();\n    strip.setBrightness(50);\n    strip.show();\n}\n\nvoid loop() {\n    for (long firstPixelHue = 0; firstPixelHue < 5 * 65536; firstPixelHue += 256) {\n        for (int i = 0; i < strip.numPixels(); i++) {\n            int pixelHue = firstPixelHue + (i * 65536L / strip.numPixels());\n            strip.setPixelColor(i, strip.gamma32(strip.ColorHSV(pixelHue)));\n        }\n        strip.show();\n        delay(10);\n    }\n    Serial.println("Rainbow cycle complete!");\n}',
+
+            pir: '/*\n * PIR Motion Sensor — Coding with Grandma Starter Template\n *\n * What it does: Lights up the onboard LED whenever motion is detected.\n * Wiring: PIR signal to GPIO 13, VCC to 5V, GND to GND.\n */\n\nconst int PIR_PIN = 13;\nconst int LED_PIN = 2;\n\nvoid setup() {\n    Serial.begin(115200);\n    Serial.println("PIR Motion Sensor starting!");\n    pinMode(PIR_PIN, INPUT);\n    pinMode(LED_PIN, OUTPUT);\n    // Let the PIR stabilize\n    delay(2000);\n    Serial.println("Ready — waiting for motion...");\n}\n\nvoid loop() {\n    int motion = digitalRead(PIR_PIN);\n    if (motion == HIGH) {\n        digitalWrite(LED_PIN, HIGH);\n        Serial.println("Motion detected!");\n    } else {\n        digitalWrite(LED_PIN, LOW);\n    }\n    delay(100);\n}',
+
+            ultrasonic: '/*\n * Ultrasonic Distance Sensor (HC-SR04) — Coding with Grandma Starter Template\n *\n * What it does: Measures distance in centimeters and prints to serial.\n * Wiring: Trig to GPIO 12, Echo to GPIO 14, VCC to 5V, GND to GND.\n */\n\nconst int TRIG_PIN = 12;\nconst int ECHO_PIN = 14;\n\nvoid setup() {\n    Serial.begin(115200);\n    Serial.println("Ultrasonic Distance starting!");\n    pinMode(TRIG_PIN, OUTPUT);\n    pinMode(ECHO_PIN, INPUT);\n}\n\nfloat measureCm() {\n    digitalWrite(TRIG_PIN, LOW);\n    delayMicroseconds(2);\n    digitalWrite(TRIG_PIN, HIGH);\n    delayMicroseconds(10);\n    digitalWrite(TRIG_PIN, LOW);\n    long duration = pulseIn(ECHO_PIN, HIGH, 30000);\n    return duration * 0.0343 / 2.0;\n}\n\nvoid loop() {\n    float cm = measureCm();\n    if (cm <= 0) {\n        Serial.println("Out of range");\n    } else {\n        Serial.print("Distance: ");\n        Serial.print(cm, 1);\n        Serial.println(" cm");\n    }\n    delay(250);\n}',
+
+            ble: '/*\n * Bluetooth LE Echo — Coding with Grandma Starter Template\n *\n * What it does: Advertises a BLE service your phone can connect to, then echoes\n * any message it receives back to the serial monitor.\n * App: Use "nRF Connect" or "LightBlue" on your phone to connect.\n */\n\n#include <BLEDevice.h>\n#include <BLEServer.h>\n#include <BLEUtils.h>\n#include <BLE2902.h>\n\n#define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"\n#define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"\n\nclass MyCallbacks : public BLECharacteristicCallbacks {\n    void onWrite(BLECharacteristic *pChar) {\n        std::string value = pChar->getValue();\n        if (value.length() > 0) {\n            Serial.print("Got: ");\n            Serial.println(value.c_str());\n        }\n    }\n};\n\nvoid setup() {\n    Serial.begin(115200);\n    Serial.println("Bluetooth LE Echo starting!");\n    BLEDevice::init("CodingWithGrandma");\n    BLEServer *pServer = BLEDevice::createServer();\n    BLEService *pService = pServer->createService(SERVICE_UUID);\n    BLECharacteristic *pChar = pService->createCharacteristic(\n        CHARACTERISTIC_UUID,\n        BLECharacteristic::PROPERTY_READ |\n        BLECharacteristic::PROPERTY_WRITE |\n        BLECharacteristic::PROPERTY_NOTIFY\n    );\n    pChar->addDescriptor(new BLE2902());\n    pChar->setCallbacks(new MyCallbacks());\n    pChar->setValue("Hello from ESP32!");\n    pService->start();\n    BLEAdvertising *adv = BLEDevice::getAdvertising();\n    adv->addServiceUUID(SERVICE_UUID);\n    adv->setScanResponse(true);\n    BLEDevice::startAdvertising();\n    Serial.println("Advertising as \\"CodingWithGrandma\\" — connect from your phone!");\n}\n\nvoid loop() { delay(1000); }',
+
+            joystick: '/*\n * Analog Joystick — Coding with Grandma Starter Template\n *\n * What it does: Reads X/Y analog values plus the push-button, prints direction.\n * Wiring: VRx -> GPIO 34, VRy -> GPIO 35, SW -> GPIO 32, VCC -> 3.3V, GND -> GND.\n */\n\nconst int X_PIN = 34;\nconst int Y_PIN = 35;\nconst int SW_PIN = 32;\nconst int CENTER = 2048;\nconst int DEADZONE = 400;\n\nvoid setup() {\n    Serial.begin(115200);\n    Serial.println("Joystick starting!");\n    pinMode(SW_PIN, INPUT_PULLUP);\n}\n\nvoid loop() {\n    int x = analogRead(X_PIN);\n    int y = analogRead(Y_PIN);\n    int btn = digitalRead(SW_PIN);\n\n    String dir = "";\n    if (y < CENTER - DEADZONE) dir += "UP ";\n    if (y > CENTER + DEADZONE) dir += "DOWN ";\n    if (x < CENTER - DEADZONE) dir += "LEFT ";\n    if (x > CENTER + DEADZONE) dir += "RIGHT ";\n    if (dir == "") dir = "center";\n\n    Serial.print("X=");\n    Serial.print(x);\n    Serial.print(" Y=");\n    Serial.print(y);\n    Serial.print(" ");\n    Serial.print(dir);\n    if (btn == LOW) Serial.print(" [CLICK]");\n    Serial.println();\n    delay(150);\n}'
+        };
+
+        function loadTemplate(name) {
+            if (editor && templates[name]) { editor.setValue(templates[name]); serialLog('Loaded template: ' + name, 'sys'); }
+        }
+
+        // ================================================================
+        // EDITOR SETUP
+        // ================================================================
+        require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } });
+
+        require(['vs/editor/editor.main'], function () {
+            monaco.languages.register({ id: 'cpp' });
+
+            // Custom dark theme matching our sunset palette
+            monaco.editor.defineTheme('sunset-dark', {
+                base: 'vs-dark',
+                inherit: true,
+                rules: [
+                    { token: 'comment', foreground: '6b8299', fontStyle: 'italic' },
+                    { token: 'keyword', foreground: 'ff8c42' },
+                    { token: 'string', foreground: 'ffc857' },
+                    { token: 'number', foreground: '4a9eff' },
+                    { token: 'type', foreground: '2ecc71' },
+                    { token: 'function', foreground: 'ffa663' }
+                ],
+                colors: {
+                    'editor.background': '#0a1225',
+                    'editor.foreground': '#ffffff',
+                    'editor.lineHighlightBackground': '#0f1f3d',
+                    'editor.selectionBackground': '#1e3a5f',
+                    'editorLineNumber.foreground': '#2a4a6b',
+                    'editorLineNumber.activeForeground': '#ff8c42',
+                    'editorCursor.foreground': '#ff8c42',
+                    'editor.inactiveSelectionBackground': '#162a4a'
+                }
+            });
+
+            // Load autosaved sketch if present, otherwise start with the Blink template
+            var savedDraft = null;
+            try { savedDraft = localStorage.getItem('cwg-autosave'); } catch (e) {}
+            var initialValue = (savedDraft && savedDraft.length > 0) ? savedDraft : templates.blink;
+
+            editor = monaco.editor.create(document.getElementById('editor-container'), {
+                value: initialValue,
+                language: 'cpp',
+                theme: 'sunset-dark',
+                fontSize: settings.fontSize || 14,
+                minimap: { enabled: false },
+                lineNumbers: 'on',
+                scrollBeyondLastLine: false,
+                automaticLayout: true,
+                tabSize: 4,
+                wordWrap: 'on',
+                padding: { top: 10 },
+                cursorBlinking: 'smooth',
+                smoothScrolling: true,
+                renderLineHighlight: 'all'
+            });
+
+            // Autosave on change — debounced
+            editor.onDidChangeModelContent(function () {
+                if (!settings.autosave) return;
+                if (autosaveTimer) clearTimeout(autosaveTimer);
+                autosaveTimer = setTimeout(function () {
+                    try { localStorage.setItem('cwg-autosave', editor.getValue()); } catch (e) {}
+                }, 400);
+            });
+
+            // Keyboard shortcuts: Ctrl/Cmd+S to download, Ctrl/Cmd+O to open
+            editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, function () { saveSketch(); });
+            editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyO, function () { openSketch(); });
+
+            if (savedDraft && savedDraft.length > 0) {
+                serialLog('Restored your last autosaved sketch. Open/Save or Templates in the sidebar anytime.', 'sys');
+            } else {
+                serialLog('Editor loaded. Pick a template, start a lesson, or ask the AI to write code for you!', 'sys');
+            }
+        });
+
+        // ================================================================
+        // CODE VERIFICATION
+        // ================================================================
+        function verifyCode() {
+            if (!editor) return;
+            var code = editor.getValue();
+            var issues = [];
+            if (!code.includes('void setup()') && !code.includes('void setup ()')) issues.push('Missing setup() function.');
+            if (!code.includes('void loop()') && !code.includes('void loop ()')) issues.push('Missing loop() function.');
+            if (!code.includes('Serial.begin') && code.includes('Serial.print')) issues.push('Using Serial.print without Serial.begin().');
+            if (code.includes('delay(-') || code.match(/delay\(\s*0\s*\)/)) issues.push('Suspicious delay value.');
+
+            if (issues.length === 0) {
+                serialLog('Code looks good! No obvious issues found.', 'sys');
+                serialLog('Full compilation requires uploading to your board.', 'sys');
+            } else {
+                serialLog('Found ' + issues.length + ' issue(s):', 'warn');
+                issues.forEach(function(i) { serialLog('  - ' + i, 'warn'); });
+            }
+        }
+
+        // ================================================================
+        // SERIAL
+        // ================================================================
+        async function connectBoard() { document.getElementById('connect-modal').classList.add('visible'); }
+        function closeConnectModal() { document.getElementById('connect-modal').classList.remove('visible'); }
+
+        async function selectSerialPort() {
+            closeConnectModal();
+            if (!('serial' in navigator)) { serialLog('Error: Use Chrome or Edge for serial support.', 'err'); return; }
+            try {
+                serialPort = await navigator.serial.requestPort();
+                var baudRate = parseInt(document.getElementById('baud-rate').value);
+                await serialPort.open({ baudRate: baudRate });
+                isConnected = true;
+                document.getElementById('status-dot').classList.add('connected');
+                document.getElementById('status-text').textContent = 'Board connected';
+                serialLog('Connected at ' + baudRate + ' baud!', 'sys');
+                readSerialLoop();
+                var enc = new TextEncoderStream();
+                enc.readable.pipeTo(serialPort.writable);
+                serialWriter = enc.writable.getWriter();
+            } catch (err) {
+                if (err.name !== 'NotFoundError') serialLog('Connection error: ' + err.message, 'err');
+            }
+        }
+
+        async function readSerialLoop() {
+            var dec = new TextDecoderStream();
+            serialPort.readable.pipeTo(dec.writable);
+            serialReader = dec.readable.getReader();
+            try { while (true) { var r = await serialReader.read(); if (r.done) break; if (r.value) serialLog(r.value); } }
+            catch (err) { serialLog('Read error: ' + err.message, 'err'); }
+            isConnected = false;
+            document.getElementById('status-dot').classList.remove('connected');
+            document.getElementById('status-text').textContent = 'Disconnected';
+            serialLog('Board disconnected.', 'warn');
+        }
+
+        async function sendSerial() {
+            var input = document.getElementById('serial-input');
+            if (!input.value) return;
+            if (serialWriter) { await serialWriter.write(input.value + '\n'); serialLog('> ' + input.value, 'sys'); input.value = ''; }
+            else serialLog('Not connected. Click "Connect Board" first.', 'warn');
+        }
+
+        function serialLog(msg, type) {
+            var out = document.getElementById('serial-output');
+            var div = document.createElement('div');
+            if (type === 'sys') div.className = 'sys-msg';
+            else if (type === 'err') div.className = 'err-msg';
+            else if (type === 'warn') div.className = 'warn-msg';
+            var ts = document.createElement('span');
+            ts.className = 'ts';
+            ts.textContent = '[' + new Date().toLocaleTimeString() + '] ';
+            div.appendChild(ts);
+            div.appendChild(document.createTextNode(msg));
+            out.appendChild(div);
+            out.scrollTop = out.scrollHeight;
+        }
+
+        function clearSerial() {
+            document.getElementById('serial-output').innerHTML = '<div class="sys-msg">Serial cleared.</div>';
+        }
+
+        // Legacy name kept for compatibility — routes to new flash modal
+        function uploadCode() { openFlashModal(); }
+
+        // ================================================================
+        // SAVE / OPEN (sketch files)
+        // ================================================================
+        function saveSketch() {
+            if (!editor) return;
+            var code = editor.getValue();
+            var defaultName = 'sketch_' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '.ino';
+            var name = prompt('Save sketch as:', defaultName);
+            if (!name) return;
+            if (!/\.(ino|cpp|c|txt)$/i.test(name)) name += '.ino';
+            var blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url; a.download = name;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            setTimeout(function() { URL.revokeObjectURL(url); }, 200);
+            serialLog('Saved "' + name + '" to your Downloads folder.', 'sys');
+        }
+
+        function openSketch() {
+            document.getElementById('open-file-input').click();
+        }
+
+        function handleOpenFile(event) {
+            var file = event.target.files && event.target.files[0];
+            if (!file) return;
+            if (file.size > 1024 * 1024) { serialLog('File too large (max 1 MB for a sketch).', 'err'); return; }
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var content = e.target.result;
+                if (editor && typeof content === 'string') {
+                    editor.setValue(content);
+                    document.querySelector('.editor-tab').textContent = file.name;
+                    serialLog('Opened "' + file.name + '" (' + content.length + ' chars).', 'sys');
+                }
+            };
+            reader.onerror = function() { serialLog('Could not read file.', 'err'); };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function clearAutosave() {
+            if (!confirm('Clear the autosaved draft? Your current editor contents stay put.')) return;
+            try { localStorage.removeItem('cwg-autosave'); } catch (e) {}
+            serialLog('Autosaved draft cleared.', 'sys');
+        }
+
+        // ================================================================
+        // ESPTOOL-JS FIRMWARE FLASH
+        // ================================================================
+        function openFlashModal() {
+            document.getElementById('flash-modal').classList.add('visible');
+            document.getElementById('flash-progress').style.width = '0%';
+            document.getElementById('flash-progress-text').textContent = 'Ready.';
+            document.getElementById('flash-log').style.display = 'none';
+            document.getElementById('flash-log').textContent = '';
+            document.getElementById('flash-start-btn').disabled = false;
+            // Warn if esptool-js didn't load
+            if (!window.__esptoolReady) {
+                flashLog('Warning: esptool-js did not load. Check your internet connection and reload.');
+                if (window.__esptoolError) flashLog('Loader error: ' + window.__esptoolError);
+            }
+        }
+        function closeFlashModal() {
+            if (isFlashing) { if (!confirm('Flash is in progress. Close anyway?')) return; }
+            document.getElementById('flash-modal').classList.remove('visible');
+        }
+        function flashLog(msg) {
+            var el = document.getElementById('flash-log');
+            el.style.display = 'block';
+            el.textContent += msg + '\n';
+            el.scrollTop = el.scrollHeight;
+        }
+        function setFlashProgress(pct, label) {
+            document.getElementById('flash-progress').style.width = pct + '%';
+            document.getElementById('flash-progress-text').textContent = (label || (pct.toFixed(1) + '%'));
+        }
+
+        async function startFlash() {
+            if (isFlashing) return;
+            if (!window.__esptoolReady) { flashLog('esptool-js is not ready. Reload the page and try again.'); return; }
+            if (!('serial' in navigator)) { flashLog('Web Serial is not available. Use Chrome or Edge on desktop.'); return; }
+
+            var fileInput = document.getElementById('flash-bin-file');
+            var file = fileInput.files && fileInput.files[0];
+            if (!file) { flashLog('Pick a .bin file first.'); return; }
+
+            var offsetStr = document.getElementById('flash-offset').value.trim() || '0x10000';
+            var offset = parseInt(offsetStr, 16);
+            if (isNaN(offset)) { flashLog('Invalid hex offset: ' + offsetStr); return; }
+            var baud = parseInt(document.getElementById('flash-baud').value) || 921600;
+
+            // If the serial monitor is connected, we must release the port.
+            if (isConnected) {
+                flashLog('Disconnecting serial monitor so we can grab the port...');
+                try { await disconnectSerial(); } catch (e) { flashLog('Warning: ' + e.message); }
+            }
+
+            isFlashing = true;
+            document.getElementById('flash-start-btn').disabled = true;
+            setFlashProgress(0, 'Requesting port...');
+            flashLog('Requesting USB serial port...');
+
+            try {
+                var port = await navigator.serial.requestPort();
+                espTransport = new window.Transport(port, true);
+                var loaderTerminal = {
+                    clean: function() {},
+                    writeLine: function(data) { flashLog(data); },
+                    write: function(data) { /* stream writes suppressed */ }
+                };
+                espLoader = new window.ESPLoader({
+                    transport: espTransport,
+                    baudrate: baud,
+                    terminal: loaderTerminal,
+                    debugLogging: false
+                });
+
+                setFlashProgress(2, 'Connecting to ESP32...');
+                var chip = await espLoader.main();
+                flashLog('Detected chip: ' + chip);
+                setFlashProgress(8, 'Reading firmware...');
+
+                var arrayBuffer = await file.arrayBuffer();
+                var binaryString = '';
+                var bytes = new Uint8Array(arrayBuffer);
+                for (var i = 0; i < bytes.length; i++) binaryString += String.fromCharCode(bytes[i]);
+
+                flashLog('Firmware size: ' + bytes.length + ' bytes. Writing to offset 0x' + offset.toString(16) + '...');
+                setFlashProgress(10, 'Flashing...');
+
+                await espLoader.writeFlash({
+                    fileArray: [{ data: binaryString, address: offset }],
+                    flashSize: 'keep',
+                    flashMode: 'keep',
+                    flashFreq: 'keep',
+                    eraseAll: false,
+                    compress: true,
+                    reportProgress: function(fileIndex, written, total) {
+                        var pct = 10 + (written / total) * 85;
+                        setFlashProgress(pct, 'Flashing ' + Math.round((written / total) * 100) + '%');
+                    },
+                    calculateMD5Hash: null
+                });
+
+                setFlashProgress(98, 'Resetting...');
+                try { await espLoader.after(); } catch (e) {}
+                try { await espTransport.disconnect(); } catch (e) {}
+
+                setFlashProgress(100, 'Done! ESP32 flashed successfully.');
+                flashLog('Flash complete. You can reconnect the serial monitor now.');
+                serialLog('Firmware flashed successfully!', 'sys');
+            } catch (err) {
+                flashLog('ERROR: ' + (err && err.message ? err.message : err));
+                setFlashProgress(0, 'Flash failed — see log');
+                serialLog('Flash failed: ' + (err && err.message ? err.message : err), 'err');
+                try { if (espTransport) await espTransport.disconnect(); } catch (e) {}
+            } finally {
+                isFlashing = false;
+                document.getElementById('flash-start-btn').disabled = false;
+                espLoader = null;
+                espTransport = null;
+            }
+        }
+
+        async function disconnectSerial() {
+            try {
+                if (serialReader) { await serialReader.cancel(); serialReader = null; }
+            } catch (e) {}
+            try {
+                if (serialWriter) { await serialWriter.close(); serialWriter = null; }
+            } catch (e) {}
+            try {
+                if (serialPort) { await serialPort.close(); }
+            } catch (e) {}
+            serialPort = null;
+            isConnected = false;
+            var dot = document.getElementById('status-dot');
+            if (dot) dot.classList.remove('connected');
+            var st = document.getElementById('status-text');
+            if (st) st.textContent = 'No board connected';
+        }
+
+        // ================================================================
+        // GUIDED LESSONS
+        // ================================================================
+        var lessons = [
+            {
+                id: 'blink-basics',
+                title: 'Blink Basics',
+                level: 'Beginner · 10 minutes',
+                summary: 'Your very first ESP32 program. Turn the onboard LED on and off, then learn to change the speed.',
+                steps: [
+                    {
+                        title: 'Step 1 — Turn on the LED',
+                        body: 'We\'ll start by turning the built-in LED on and never turning it off. Load this code, flash it, and watch the tiny blue LED glow.',
+                        code: '// Step 1: Always ON\nconst int LED = 2;\n\nvoid setup() {\n    pinMode(LED, OUTPUT);\n    digitalWrite(LED, HIGH);\n}\n\nvoid loop() {}\n'
+                    },
+                    {
+                        title: 'Step 2 — Blink it',
+                        body: 'Now add a delay so the LED flashes once per second. delay(1000) pauses the program for 1000 milliseconds — one second.',
+                        code: '// Step 2: Blink\nconst int LED = 2;\n\nvoid setup() {\n    pinMode(LED, OUTPUT);\n}\n\nvoid loop() {\n    digitalWrite(LED, HIGH);\n    delay(1000);\n    digitalWrite(LED, LOW);\n    delay(1000);\n}\n'
+                    },
+                    {
+                        title: 'Step 3 — Make it faster',
+                        body: 'Change both delays to 100 (one-tenth of a second). Flash it again and notice how quickly it blinks now. Experiment with other numbers!',
+                        code: '// Step 3: Fast blink\nconst int LED = 2;\n\nvoid setup() {\n    pinMode(LED, OUTPUT);\n}\n\nvoid loop() {\n    digitalWrite(LED, HIGH);\n    delay(100);\n    digitalWrite(LED, LOW);\n    delay(100);\n}\n'
+                    }
+                ]
+            },
+            {
+                id: 'button-led',
+                title: 'Button Controls LED',
+                level: 'Beginner · 15 minutes',
+                summary: 'Wire up a push-button and learn about INPUT_PULLUP, digitalRead, and if-statements.',
+                steps: [
+                    {
+                        title: 'Step 1 — Read the button',
+                        body: 'Connect a push-button between GPIO 4 and GND. Print the button state to the serial monitor.',
+                        code: '// Step 1: Read the button\nconst int BUTTON = 4;\n\nvoid setup() {\n    Serial.begin(115200);\n    pinMode(BUTTON, INPUT_PULLUP);\n}\n\nvoid loop() {\n    int state = digitalRead(BUTTON);\n    Serial.println(state);\n    delay(100);\n}\n'
+                    },
+                    {
+                        title: 'Step 2 — Light an LED when pressed',
+                        body: 'When the button is pressed, the state reads LOW. Use an if-statement to light the onboard LED.',
+                        code: '// Step 2: Button -> LED\nconst int BUTTON = 4;\nconst int LED = 2;\n\nvoid setup() {\n    pinMode(BUTTON, INPUT_PULLUP);\n    pinMode(LED, OUTPUT);\n}\n\nvoid loop() {\n    if (digitalRead(BUTTON) == LOW) {\n        digitalWrite(LED, HIGH);\n    } else {\n        digitalWrite(LED, LOW);\n    }\n}\n'
+                    },
+                    {
+                        title: 'Step 3 — Toggle on each press',
+                        body: 'Make the LED toggle on/off each time you press the button (not just while held). We track the previous state to detect the "press" moment.',
+                        code: '// Step 3: Toggle on press\nconst int BUTTON = 4;\nconst int LED = 2;\nbool ledOn = false;\nbool wasPressed = false;\n\nvoid setup() {\n    pinMode(BUTTON, INPUT_PULLUP);\n    pinMode(LED, OUTPUT);\n}\n\nvoid loop() {\n    bool pressed = (digitalRead(BUTTON) == LOW);\n    if (pressed && !wasPressed) {\n        ledOn = !ledOn;\n        digitalWrite(LED, ledOn ? HIGH : LOW);\n    }\n    wasPressed = pressed;\n    delay(20);\n}\n'
+                    }
+                ]
+            },
+            {
+                id: 'wifi-hello',
+                title: 'Hello, WiFi',
+                level: 'Beginner · 20 minutes',
+                summary: 'Connect to your home WiFi and fetch the current time from the internet.',
+                steps: [
+                    {
+                        title: 'Step 1 — Connect to WiFi',
+                        body: 'Replace YOUR_SSID and YOUR_PASSWORD with your network. Watch the serial monitor — dots print while connecting.',
+                        code: '// Step 1: Connect\n#include <WiFi.h>\n\nconst char* SSID = "YOUR_SSID";\nconst char* PASS = "YOUR_PASSWORD";\n\nvoid setup() {\n    Serial.begin(115200);\n    WiFi.begin(SSID, PASS);\n    while (WiFi.status() != WL_CONNECTED) { delay(300); Serial.print("."); }\n    Serial.println();\n    Serial.print("IP address: ");\n    Serial.println(WiFi.localIP());\n}\n\nvoid loop() {}\n'
+                    },
+                    {
+                        title: 'Step 2 — Get the time',
+                        body: 'Use NTP to sync the clock. The ESP32 has no battery-backed clock — it asks the internet for the time.',
+                        code: '// Step 2: NTP time\n#include <WiFi.h>\n#include <time.h>\n\nconst char* SSID = "YOUR_SSID";\nconst char* PASS = "YOUR_PASSWORD";\n\nvoid setup() {\n    Serial.begin(115200);\n    WiFi.begin(SSID, PASS);\n    while (WiFi.status() != WL_CONNECTED) delay(300);\n    configTime(-8 * 3600, 3600, "pool.ntp.org");\n    Serial.println("Connected, waiting for time...");\n}\n\nvoid loop() {\n    time_t now = time(nullptr);\n    Serial.println(ctime(&now));\n    delay(5000);\n}\n'
+                    }
+                ]
+            },
+            {
+                id: 'sensor-dashboard',
+                title: 'Mini Sensor Dashboard',
+                level: 'Intermediate · 25 minutes',
+                summary: 'Serve a live web page from your ESP32 showing sensor readings. Open it on your phone on the same WiFi.',
+                steps: [
+                    {
+                        title: 'Step 1 — Serve a static page',
+                        body: 'Put the ESP32 on WiFi and serve a simple HTML hello. Open the printed IP in your browser.',
+                        code: '// Step 1: Static web page\n#include <WiFi.h>\n#include <WebServer.h>\n\nconst char* SSID = "YOUR_SSID";\nconst char* PASS = "YOUR_PASSWORD";\nWebServer server(80);\n\nvoid setup() {\n    Serial.begin(115200);\n    WiFi.begin(SSID, PASS);\n    while (WiFi.status() != WL_CONNECTED) delay(300);\n    Serial.println(WiFi.localIP());\n    server.on("/", []() { server.send(200, "text/html", "<h1>Hello from ESP32!</h1>"); });\n    server.begin();\n}\n\nvoid loop() { server.handleClient(); }\n'
+                    },
+                    {
+                        title: 'Step 2 — Add a live reading',
+                        body: 'Serve the internal temperature sensor value. Refresh the page and watch the number change.',
+                        code: '// Step 2: Live temp\n#include <WiFi.h>\n#include <WebServer.h>\n\nconst char* SSID = "YOUR_SSID";\nconst char* PASS = "YOUR_PASSWORD";\nWebServer server(80);\n\nfloat cpuTempFake() { return 20.0 + (millis() % 10000) / 1000.0; }\n\nvoid setup() {\n    Serial.begin(115200);\n    WiFi.begin(SSID, PASS);\n    while (WiFi.status() != WL_CONNECTED) delay(300);\n    Serial.println(WiFi.localIP());\n    server.on("/", []() {\n        String html = "<h1>ESP32 Dashboard</h1>";\n        html += "<p>Uptime: " + String(millis()/1000) + "s</p>";\n        html += "<p>Fake temp: " + String(cpuTempFake(),1) + " C</p>";\n        html += "<p><a href=/>Refresh</a></p>";\n        server.send(200, "text/html", html);\n    });\n    server.begin();\n}\n\nvoid loop() { server.handleClient(); }\n'
+                    }
+                ]
+            }
+        ];
+
+        function renderLessonsList() {
+            document.getElementById('lessons-list').style.display = '';
+            document.getElementById('lessons-detail').style.display = 'none';
+            var items = document.getElementById('lessons-list-items');
+            if (items.children.length > 0) return; // already rendered
+            items.innerHTML = '';
+            lessons.forEach(function(l) {
+                var card = document.createElement('div');
+                card.className = 'lesson-card';
+                card.onclick = function() { showLesson(l.id); };
+                card.innerHTML =
+                    '<div class="lesson-card-title">' +
+                        '<i data-lucide="book-open" style="width:14px;height:14px;color:var(--orange);"></i> ' + escapeHtml(l.title) +
+                    '</div>' +
+                    '<div class="lesson-card-meta">' + escapeHtml(l.level) + ' · ' + l.steps.length + ' steps</div>' +
+                    '<div class="lesson-card-desc">' + escapeHtml(l.summary) + '</div>';
+                items.appendChild(card);
+            });
+            if (window.lucide && lucide.createIcons) lucide.createIcons();
+        }
+
+        function showLessonsList() {
+            currentLessonId = null;
+            document.getElementById('lessons-list').style.display = '';
+            document.getElementById('lessons-detail').style.display = 'none';
+        }
+
+        function showLesson(id) {
+            var lesson = lessons.find(function(l) { return l.id === id; });
+            if (!lesson) return;
+            currentLessonId = id;
+            document.getElementById('lessons-list').style.display = 'none';
+            document.getElementById('lessons-detail').style.display = '';
+            var el = document.getElementById('lesson-detail-content');
+            var html = '<div style="margin-bottom:0.6rem;">' +
+                '<div style="font-weight:800;font-size:1rem;color:var(--text);margin-bottom:0.15rem;">' + escapeHtml(lesson.title) + '</div>' +
+                '<div style="font-size:0.7rem;color:var(--text-dimmer);text-transform:uppercase;letter-spacing:0.5px;">' + escapeHtml(lesson.level) + '</div>' +
+                '<p style="font-size:0.78rem;color:var(--text-dim);line-height:1.5;margin-top:0.5rem;">' + escapeHtml(lesson.summary) + '</p>' +
+                '</div>';
+            lesson.steps.forEach(function(step, i) {
+                html += '<div class="lesson-step">' +
+                    '<div class="lesson-step-num">Step ' + (i + 1) + '</div>' +
+                    '<div class="lesson-step-title">' + escapeHtml(step.title) + '</div>' +
+                    '<div class="lesson-step-desc">' + escapeHtml(step.body) + '</div>' +
+                    '<button class="btn btn-sm btn-orange" onclick="loadLessonStep(\'' + id + '\',' + i + ')">' +
+                        '<i data-lucide="code" style="width:12px;height:12px;"></i> Load this code' +
+                    '</button>' +
+                    '</div>';
+            });
+            el.innerHTML = html;
+            if (window.lucide && lucide.createIcons) lucide.createIcons();
+        }
+
+        function loadLessonStep(lessonId, stepIdx) {
+            var lesson = lessons.find(function(l) { return l.id === lessonId; });
+            if (!lesson || !lesson.steps[stepIdx]) return;
+            if (editor) {
+                editor.setValue(lesson.steps[stepIdx].code);
+                document.querySelector('.editor-tab').textContent = lesson.id + '-step-' + (stepIdx + 1) + '.ino';
+                serialLog('Loaded: ' + lesson.title + ' — Step ' + (stepIdx + 1), 'sys');
+            }
+        }
+
+        function escapeHtml(s) {
+            return String(s).replace(/[&<>"']/g, function(c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+            });
+        }
+
+        // ================================================================
+        // RESIZE
+        // ================================================================
+        (function () {
+            var h = document.getElementById('resize-handle'), p = document.getElementById('bottom-panel'), sy, sh;
+            h.addEventListener('mousedown', function(e) { sy = e.clientY; sh = p.offsetHeight; document.addEventListener('mousemove', d); document.addEventListener('mouseup', u); e.preventDefault(); });
+            function d(e) { var n = sh - (e.clientY - sy); if (n > 80 && n < 500) p.style.height = n + 'px'; }
+            function u() { document.removeEventListener('mousemove', d); document.removeEventListener('mouseup', u); }
+        })();
+
+        // ================================================================
+        // INIT
+        // ================================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            lucide.createIcons();
+            loadSettings();
+        });
+    </script>
+</body>
+</html>

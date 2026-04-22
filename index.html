@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coding with Grandma — Build Something Amazing</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0b1628;
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 1.5rem 1rem;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            background: linear-gradient(135deg, #ff8c42, #ffc857, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.3rem;
+        }
+
+        .tagline {
+            color: #94a3b8;
+            font-size: 1.05rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .intro {
+            color: #64748b;
+            font-size: 0.85rem;
+            max-width: 520px;
+            margin: 0 auto;
+            line-height: 1.5;
+        }
+
+        .section {
+            background: #0f1f3d;
+            border: 1px solid #1e3a5f;
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .section-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #ff8c42;
+            margin-bottom: 0.2rem;
+        }
+
+        .section-help {
+            color: #94a3b8;
+            font-size: 0.82rem;
+            margin-bottom: 0.8rem;
+            line-height: 1.4;
+        }
+
+        .step-badge {
+            display: inline-block;
+            background: #ff8c42;
+            color: #0f172a;
+            font-weight: 800;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 26px;
+            font-size: 0.85rem;
+            margin-right: 0.4rem;
+            vertical-align: middle;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+            color: #cbd5e1;
+            font-size: 0.9rem;
+        }
+
+        textarea, select, input[type="text"] {
+            width: 100%;
+            padding: 0.65rem;
+            border: 1px solid #1e3a5f;
+            border-radius: 8px;
+            background: #0a1225;
+            color: #e2e8f0;
+            font-size: 0.95rem;
+            font-family: inherit;
+        }
+
+        textarea { resize: vertical; min-height: 80px; }
+        textarea:focus, select:focus, input:focus {
+            outline: none;
+            border-color: #ff8c42;
+            box-shadow: 0 0 0 2px rgba(255,140,66,0.2);
+        }
+
+        .form-group { margin-bottom: 1rem; }
+
+        .board-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.6rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .board-card {
+            border: 2px solid #1e3a5f;
+            border-radius: 10px;
+            padding: 0.7rem;
+            cursor: pointer;
+            transition: border-color 0.15s, background 0.15s;
+            background: #0a1225;
+        }
+
+        .board-card:hover {
+            border-color: #ff8c42;
+            background: #162032;
+        }
+
+        .board-card.selected {
+            border-color: #ff8c42;
+            background: #1e3a5f;
+        }
+
+        .board-card .board-name {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #e2e8f0;
+            margin-bottom: 0.2rem;
+        }
+
+        .board-card .board-desc {
+            font-size: 0.78rem;
+            color: #94a3b8;
+            line-height: 1.35;
+        }
+
+        .board-card .board-look {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 0.25rem;
+            font-style: italic;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+
+        .feature-chip {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            background: #0a1225;
+            border: 1px solid #1e3a5f;
+            border-radius: 8px;
+            padding: 0.6rem;
+            cursor: pointer;
+            transition: border-color 0.15s;
+        }
+
+        .feature-chip:hover { border-color: #475569; }
+
+        .feature-chip.checked {
+            border-color: #ff8c42;
+            background: #162032;
+        }
+
+        .feature-chip input[type="checkbox"] {
+            margin-top: 2px;
+            accent-color: #ff8c42;
+        }
+
+        .feature-chip .feat-label {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #cbd5e1;
+        }
+
+        .feature-chip .feat-desc {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            line-height: 1.3;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            padding: 0.9rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn-generate {
+            background: #ff8c42;
+            color: #0f172a;
+            margin-bottom: 0.75rem;
+        }
+
+        .btn-generate:hover { background: #ffa663; }
+
+        .btn-copy {
+            background: #1e3a5f;
+            color: #ffffff;
+            font-size: 0.95rem;
+        }
+
+        .btn-copy:hover { background: #2a4a6b; }
+
+        .btn-copy.copied {
+            background: #22c55e;
+            color: #0f172a;
+        }
+
+        .output-section {
+            display: none;
+            margin-top: 1.25rem;
+        }
+
+        .output-section.visible { display: block; }
+
+        .output-header {
+            font-weight: 700;
+            color: #22c55e;
+            margin-bottom: 0.3rem;
+            font-size: 1rem;
+        }
+
+        .output-instructions {
+            color: #94a3b8;
+            font-size: 0.82rem;
+            margin-bottom: 0.7rem;
+            line-height: 1.5;
+        }
+
+        .output-box {
+            background: #0a1225;
+            border: 1px solid #1e3a5f;
+            border-radius: 8px;
+            padding: 1rem;
+            white-space: pre-wrap;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.82rem;
+            line-height: 1.5;
+            max-height: 350px;
+            overflow-y: auto;
+            color: #e2e8f0;
+            margin-bottom: 0.75rem;
+        }
+
+        .next-steps {
+            background: #162032;
+            border: 1px solid #1e3a5f;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .next-steps h3 {
+            color: #ff8c42;
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .next-steps ol {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            padding-left: 1.3rem;
+        }
+
+        .next-steps a { color: #ff8c42; }
+
+        .footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            color: #475569;
+            font-size: 0.75rem;
+        }
+
+        .ide-banner {
+            background: linear-gradient(135deg, #1e3a5f, #162032);
+            border: 2px solid #ff8c42;
+            border-radius: 12px;
+            padding: 1.2rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .ide-banner h2 {
+            color: #ff8c42;
+            font-size: 1.1rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .ide-banner p {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .ide-banner a {
+            display: inline-block;
+            padding: 0.7rem 1.5rem;
+            background: #ff8c42;
+            color: #0f172a;
+            font-weight: 700;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.95rem;
+        }
+
+        .ide-banner a:hover { background: #ffa663; }
+
+        @media (max-width: 500px) {
+            .board-grid, .feature-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Coding with Grandma</h1>
+            <p class="tagline">Tell us what to build. We'll write the code.</p>
+            <p class="intro">
+                No experience needed! Just describe your project in plain
+                English, pick your board, and we'll generate ready-to-use
+                code for your ESP32 microcontroller.
+            </p>
+        </header>
+
+        <div class="ide-banner">
+            <h2>NEW: Full IDE Now Available!</h2>
+            <p>Write code, talk to your board, and flash firmware — all in your browser.</p>
+            <a href="ide.html">Open Coding with Grandma IDE</a>
+        </div>
+
+        <div class="section">
+            <p class="section-title">
+                <span class="step-badge">1</span> What board do you have?
+            </p>
+            <p class="section-help">
+                Look at the small chip on your board — it usually has text
+                printed on it. Pick the closest match below. If you're not
+                sure, choose "I don't know" and we'll write code that works
+                on most ESP32 boards.
+            </p>
+
+            <div class="board-grid">
+                <div class="board-card selected" onclick="selectBoard(this, 'ESP32 DevKit v1')">
+                    <div class="board-name">ESP32 DevKit v1</div>
+                    <div class="board-desc">The most common starter board. Has WiFi, Bluetooth, and plenty of pins.</div>
+                    <div class="board-look">Look for: rectangular board with a micro-USB port and two rows of pins on the sides.</div>
+                </div>
+                <div class="board-card" onclick="selectBoard(this, 'ESP32-S3')">
+                    <div class="board-name">ESP32-S3</div>
+                    <div class="board-desc">Newer and more powerful. Great for projects with cameras, displays, or AI.</div>
+                    <div class="board-look">Look for: "ESP32-S3" printed on the chip. Often has a USB-C port.</div>
+                </div>
+                <div class="board-card" onclick="selectBoard(this, 'ESP32-C3')">
+                    <div class="board-name">ESP32-C3</div>
+                    <div class="board-desc">Small and energy-efficient. Perfect for simple sensor projects.</div>
+                    <div class="board-look">Look for: "ESP32-C3" on the chip. Usually a smaller board.</div>
+                </div>
+                <div class="board-card" onclick="selectBoard(this, 'ESP32 (generic)')">
+                    <div class="board-name">I don't know</div>
+                    <div class="board-desc">That's OK! We'll generate code that works on most ESP32 boards.</div>
+                    <div class="board-look">You can always come back and change this later.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <p class="section-title">
+                <span class="step-badge">2</span> What should it do?
+            </p>
+            <p class="section-help">
+                Describe your project in your own words — like you're
+                explaining it to a friend. The more detail, the better
+                the code will be!
+            </p>
+
+            <div class="form-group">
+                <textarea id="description" rows="4" placeholder="Examples:
+- Blink an LED on and off every second
+- Read the temperature from a sensor and show it on a little screen
+- Turn on a motor when I press a button
+- Connect to WiFi and send sensor data to my phone"></textarea>
+            </div>
+        </div>
+
+        <div class="section">
+            <p class="section-title">
+                <span class="step-badge">3</span> What hardware are you using? <span style="color:#64748b; font-weight:400; font-size:0.85rem;">(optional)</span>
+            </p>
+            <p class="section-help">
+                If you have sensors, screens, motors, or other parts, list
+                them here. Don't worry if you don't know the exact names —
+                describe what they look like or what they do.
+            </p>
+
+            <div class="form-group">
+                <input type="text" id="components" placeholder="Examples: temperature sensor, small blue screen, LED, buzzer, servo motor">
+            </div>
+        </div>
+
+        <div class="section">
+            <p class="section-title">
+                <span class="step-badge">4</span> What features do you need? <span style="color:#64748b; font-weight:400; font-size:0.85rem;">(optional)</span>
+            </p>
+            <p class="section-help">
+                Click any that apply to your project. Don't worry if you're
+                not sure — you can always add them later.
+            </p>
+
+            <div class="feature-grid">
+                <label class="feature-chip" onclick="toggleChip(this)">
+                    <input type="checkbox" id="feat-wifi">
+                    <div>
+                        <div class="feat-label">WiFi</div>
+                        <div class="feat-desc">Connect to the internet — send data to websites, check the weather, or control your project from your phone.</div>
+                    </div>
+                </label>
+                <label class="feature-chip" onclick="toggleChip(this)">
+                    <input type="checkbox" id="feat-ble">
+                    <div>
+                        <div class="feat-label">Bluetooth</div>
+                        <div class="feat-desc">Talk to nearby devices like your phone or other boards — no internet needed.</div>
+                    </div>
+                </label>
+                <label class="feature-chip checked" onclick="toggleChip(this)">
+                    <input type="checkbox" id="feat-serial" checked>
+                    <div>
+                        <div class="feat-label">Serial Monitor</div>
+                        <div class="feat-desc">Print messages to your computer so you can see what the board is doing. Great for learning!</div>
+                    </div>
+                </label>
+                <label class="feature-chip" onclick="toggleChip(this)">
+                    <input type="checkbox" id="feat-sleep">
+                    <div>
+                        <div class="feat-label">Battery Saver</div>
+                        <div class="feat-desc">Put the board to sleep between tasks to make batteries last much longer.</div>
+                    </div>
+                </label>
+                <label class="feature-chip" onclick="toggleChip(this)">
+                    <input type="checkbox" id="feat-ota">
+                    <div>
+                        <div class="feat-label">Wireless Updates</div>
+                        <div class="feat-desc">Update your code over WiFi without plugging in a cable. Handy if the board is hard to reach.</div>
+                    </div>
+                </label>
+                <label class="feature-chip" onclick="toggleChip(this)">
+                    <input type="checkbox" id="feat-mqtt">
+                    <div>
+                        <div class="feat-label">IoT Messaging</div>
+                        <div class="feat-desc">Send and receive messages between devices — the standard way smart home gadgets talk to each other.</div>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <button class="btn-generate" onclick="generatePrompt()">Generate My Code</button>
+
+        <div class="output-section" id="output-section">
+            <div class="section">
+                <p class="output-header">Your code instructions are ready!</p>
+                <p class="output-instructions">
+                    Copy the text below and paste it into the Coding with Grandma IDE
+                    code generator to get your working ESP32 code.
+                </p>
+                <div class="output-box" id="output-box"></div>
+                <button class="btn-copy" id="copy-btn" onclick="copyPrompt()">Copy to clipboard</button>
+
+                <div class="next-steps">
+                    <h3>What to do next</h3>
+                    <ol>
+                        <li>Click "Copy to clipboard" above</li>
+                        <li>Open your favorite AI assistant (Claude, ChatGPT, or similar)</li>
+                        <li>Paste the text and press Enter</li>
+                        <li>You'll get complete, ready-to-use ESP32 code</li>
+                        <li>Upload the code to your board and watch it work!</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <p class="footer">
+            Coding with Grandma — Making microcontrollers accessible to everyone.
+        </p>
+    </div>
+
+    <script>
+        var selectedBoard = 'ESP32 DevKit v1';
+
+        function selectBoard(card, boardName) {
+            var cards = document.querySelectorAll('.board-card');
+            for (var i = 0; i < cards.length; i++) {
+                cards[i].classList.remove('selected');
+            }
+            card.classList.add('selected');
+            selectedBoard = boardName;
+        }
+
+        function toggleChip(chip) {
+            setTimeout(function() {
+                var cb = chip.querySelector('input[type="checkbox"]');
+                if (cb.checked) {
+                    chip.classList.add('checked');
+                } else {
+                    chip.classList.remove('checked');
+                }
+            }, 10);
+        }
+
+        function generatePrompt() {
+            var desc = document.getElementById('description').value.trim();
+            if (!desc) {
+                alert('Please describe what you want your ESP32 to do (Step 2).');
+                return;
+            }
+
+            var board = selectedBoard;
+            var components = document.getElementById('components').value.trim();
+
+            var features = [];
+            if (document.getElementById('feat-wifi').checked) features.push('WiFi connectivity');
+            if (document.getElementById('feat-ble').checked) features.push('Bluetooth Low Energy (BLE)');
+            if (document.getElementById('feat-serial').checked) features.push('Serial monitor output for debugging');
+            if (document.getElementById('feat-sleep').checked) features.push('Deep sleep for power saving');
+            if (document.getElementById('feat-ota').checked) features.push('Over-the-air (OTA) firmware updates');
+            if (document.getElementById('feat-mqtt').checked) features.push('MQTT protocol for IoT communication');
+
+            var prompt = 'Write complete, working Arduino code for an ' + board + ' that does the following:\n\n';
+            prompt += desc + '\n\n';
+
+            prompt += '## Requirements\n';
+            prompt += '- Board: ' + board + '\n';
+            prompt += '- Framework: Arduino\n';
+
+            if (components) {
+                prompt += '- Hardware components: ' + components + '\n';
+            }
+
+            if (features.length > 0) {
+                prompt += '- Features: ' + features.join(', ') + '\n';
+            }
+
+            prompt += '\n## Code guidelines\n';
+            prompt += '- Include all necessary #include statements and library names\n';
+            prompt += '- Define all pin numbers as constants at the top of the file\n';
+            prompt += '- Add clear comments explaining what each section does (written for a beginner)\n';
+            prompt += '- Handle errors gracefully and print helpful messages to Serial\n';
+            prompt += '- Use setup() and loop() structure\n';
+            prompt += '- At the top of the file, add a comment block listing:\n';
+            prompt += '  - What libraries need to be installed\n';
+            prompt += '  - How to wire the components (which pin connects to what)\n';
+            prompt += '  - What the code does in plain English\n';
+
+            prompt += '\nProvide the complete code in a single file. Make it beginner-friendly with lots of comments.';
+
+            document.getElementById('output-box').textContent = prompt;
+            document.getElementById('output-section').classList.add('visible');
+            document.getElementById('copy-btn').textContent = 'Copy to clipboard';
+            document.getElementById('copy-btn').classList.remove('copied');
+
+            document.getElementById('output-section').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function copyPrompt() {
+            var text = document.getElementById('output-box').textContent;
+            navigator.clipboard.writeText(text).then(function() {
+                var btn = document.getElementById('copy-btn');
+                btn.textContent = 'Copied!';
+                btn.classList.add('copied');
+                setTimeout(function() {
+                    btn.textContent = 'Copy to clipboard';
+                    btn.classList.remove('copied');
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>
