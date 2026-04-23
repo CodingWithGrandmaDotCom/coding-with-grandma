@@ -30,10 +30,13 @@ Arduino IDE, PlatformIO, or any external IDE in user-facing code or documentatio
 
 ## Repository layout
 
-- `firmware/` — ESP32 C/C++ source (starter templates and examples)
-- `software/` — IDE application source (currently all in ide.html)
-- `docs/` — Design notes, architecture, user guides
-- `examples/` — Sample ESP32 sketches and reference projects
+- `ide.html` + `index.html` + `404.html` — the web IDE (single-file) and landing page, served by GitHub Pages
+- `firmware/` — precompiled firmware artifacts (planned: MicroPython + BLE bootloader binaries)
+- `examples/` — standalone multi-file sample projects (one subfolder each)
+- `docs/` — design notes, architecture diagrams, user guides
+- `ios/` — Capacitor-wrapped iPhone app (`ios/App/` generated on Mac via `npx cap add ios`)
+- `scripts/` — build tooling (e.g. `build-web.mjs` copies web files to `dist/` for iOS bundling)
+- `.github/workflows/pages.yml` — auto-deploy to GitHub Pages on every push to main
 
 ## Tech stack
 

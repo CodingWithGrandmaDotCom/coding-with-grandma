@@ -104,10 +104,11 @@ ROADMAP.md            ← Phased product vision (6 phases)
 LICENSE               ← License file
 .gitattributes        ← * text=auto (LF/CRLF normalization)
 .gitignore            ← ESP32-appropriate ignores
-firmware/             ← Future: ESP32 C/C++ source
-software/             ← Future: IDE modules when ide.html is split
-docs/                 ← Future: Design notes, user guides
-examples/             ← Future: Sample ESP32 sketches
+firmware/             ← Future: precompiled MicroPython + BLE bootloader binaries
+docs/                 ← Future: design notes, architecture diagrams, user guides
+examples/             ← Future: standalone multi-file sample projects
+ios/                  ← Capacitor iOS project (ios/App/ generated on MacBook)
+scripts/              ← Build tooling (build-web.mjs)
 ```
 
 ## Conventions
