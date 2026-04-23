@@ -161,6 +161,61 @@
         .hero-snap-btn:hover { transform: translateY(-1px); filter: brightness(1.08); }
         .hero-snap-btn:active { transform: translateY(0); }
 
+        /* ===== ONBOARDING CHOICE CARDS ===== */
+        .onboard-choices {
+            display: grid;
+            gap: 0.65rem;
+            margin-bottom: 0.5rem;
+        }
+        .onboard-choice {
+            display: flex;
+            gap: 0.9rem;
+            align-items: center;
+            text-align: left;
+            padding: 0.95rem 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            color: #ffffff;
+            cursor: pointer;
+            transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
+        }
+        .onboard-choice:hover {
+            background: rgba(255, 140, 66, 0.08);
+            border-color: var(--orange);
+            transform: translateY(-1px);
+        }
+        .onboard-choice.onboard-skip {
+            background: transparent;
+            opacity: 0.75;
+        }
+        .onboard-choice.onboard-skip:hover {
+            opacity: 1;
+            border-color: var(--border-light);
+            background: rgba(255,255,255,0.04);
+        }
+        .onboard-choice .oc-icon {
+            flex: 0 0 44px;
+            width: 44px; height: 44px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--orange), var(--coral));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.3rem;
+        }
+        .onboard-choice.onboard-skip .oc-icon {
+            background: rgba(255,255,255,0.05);
+        }
+        .onboard-choice .oc-title { color: #ffffff; font-weight: 600; font-size: 0.95rem; margin-bottom: 0.15rem; }
+        .onboard-choice .oc-desc  { color: var(--text-dim); font-size: 0.78rem; line-height: 1.45; }
+        .btn-welcome.onboard-secondary {
+            background: transparent;
+            border: 1px solid var(--border-light);
+            color: var(--text-dim);
+        }
+        .btn-welcome.onboard-secondary:hover { filter: none; color: #ffffff; border-color: var(--text-dim); }
+        #onboard-snap-controls { display: none; gap: 0.5rem; }
+        #onboard-snap-controls.visible { display: flex; }
+
         /* ===== WELCOME MODAL ===== */
         .welcome-modal-overlay {
             position: fixed; inset: 0;
@@ -1317,37 +1372,135 @@
         </div>
     </div>
 
-    <!-- WELCOME MODAL (first-visit only) -->
+    <!-- ONBOARDING MODAL (first-visit: photo/QR/manual board identification) -->
     <div class="welcome-modal-overlay" id="welcome-modal">
-        <div class="welcome-modal">
-            <h1>👋 Welcome to Coding with Grandma</h1>
-            <div class="w-sub">
-                Turn an ESP32 microcontroller into an AI-powered playground. You write in <strong style="color:var(--orange);">Python</strong> (runs instantly — no waiting for code to compile). Arduino C++ is also available if you prefer.
+        <div class="welcome-modal" id="welcome-modal-body">
+
+            <!-- ===== STEP 1: Welcome + board identification menu ===== -->
+            <div class="onboard-step" data-step="start">
+                <h1>👋 Welcome to Coding with Grandma</h1>
+                <div class="w-sub">
+                    First, let's figure out which <strong style="color:var(--orange);">ESP32 board</strong> you have.
+                    The AI writes better code when it knows your exact setup.
+                </div>
+                <div class="onboard-choices">
+                    <button class="onboard-choice" onclick="onboardGo('photo')">
+                        <div class="oc-icon">📸</div>
+                        <div class="oc-body">
+                            <div class="oc-title">Take a photo of your board</div>
+                            <div class="oc-desc">Point your phone or webcam at the ESP32 — AI identifies it.</div>
+                        </div>
+                    </button>
+                    <button class="onboard-choice" onclick="onboardGo('qr')">
+                        <div class="oc-icon">📷</div>
+                        <div class="oc-body">
+                            <div class="oc-title">Scan the QR code on the package</div>
+                            <div class="oc-desc">Most starter-kit boxes have one. We'll look it up for you.</div>
+                        </div>
+                    </button>
+                    <button class="onboard-choice" onclick="onboardGo('manual')">
+                        <div class="oc-icon">📋</div>
+                        <div class="oc-body">
+                            <div class="oc-title">I'll pick from a list</div>
+                            <div class="oc-desc">Already know what you have? Tell us directly.</div>
+                        </div>
+                    </button>
+                    <button class="onboard-choice onboard-skip" onclick="onboardGo('skip')">
+                        <div class="oc-icon">⏭</div>
+                        <div class="oc-body">
+                            <div class="oc-title">Skip for now</div>
+                            <div class="oc-desc">Start exploring. You can set this up later.</div>
+                        </div>
+                    </button>
+                </div>
             </div>
-            <div class="welcome-steps">
-                <div class="welcome-step">
-                    <div class="w-num">1</div>
-                    <div>
-                        <div class="w-title">📸 Snap a photo of your board</div>
-                        <div class="w-body">AI figures out which ESP32 you have and what's plugged in. It'll scan a QR code on the package if it's on there. Or just tell us.</div>
-                    </div>
+
+            <!-- ===== STEP: Photo identification ===== -->
+            <div class="onboard-step" data-step="photo" style="display:none;">
+                <h1>📸 Show me your board</h1>
+                <div class="w-sub">Take a photo or upload one. The AI will read what ESP32 variant it is and note any visible components.</div>
+
+                <div id="onboard-photo-buttons" style="display:grid;gap:0.5rem;margin:1rem 0;">
+                    <button class="btn-welcome" onclick="onboardOpenCamera()">📷 Open Camera</button>
+                    <button class="btn-welcome onboard-secondary" onclick="document.getElementById('onboard-photo-file').click()">🖼 Upload a photo</button>
+                    <input type="file" id="onboard-photo-file" accept="image/*" capture="environment" style="display:none;" onchange="onboardHandlePhotoUpload(event)">
                 </div>
-                <div class="welcome-step">
-                    <div class="w-num">2</div>
-                    <div>
-                        <div class="w-title">✨ Describe what you want to build</div>
-                        <div class="w-body">Plain English — "blink an LED when I press a button" — and the AI writes commented Python code you can read and learn from.</div>
-                    </div>
+
+                <video id="onboard-video" autoplay playsinline muted style="display:none;width:100%;max-height:260px;background:#000;border-radius:12px;margin-bottom:0.5rem;"></video>
+                <canvas id="onboard-canvas" style="display:none;"></canvas>
+
+                <div id="onboard-snap-controls" style="display:none;gap:0.5rem;margin-bottom:0.5rem;">
+                    <button class="btn-welcome" onclick="onboardSnap()">📸 Snap!</button>
+                    <button class="btn-welcome onboard-secondary" onclick="onboardCloseCamera()">Cancel</button>
                 </div>
-                <div class="welcome-step">
-                    <div class="w-num">3</div>
-                    <div>
-                        <div class="w-title">⚡ Run it instantly</div>
-                        <div class="w-body">Python runs live on your ESP32 — change a number, re-send, see it happen. No compile wait. Arduino C++ is one click away if you want it.</div>
-                    </div>
-                </div>
+
+                <img id="onboard-preview" style="display:none;width:100%;max-height:240px;object-fit:contain;border-radius:12px;background:#000;margin-bottom:0.5rem;">
+
+                <div id="onboard-photo-status" style="display:none;padding:0.9rem 1rem;background:var(--bg-input);border:1px solid var(--border);border-radius:12px;color:#ffffff;font-size:0.88rem;line-height:1.5;margin-bottom:0.5rem;"></div>
+
+                <button class="btn-welcome onboard-secondary" onclick="onboardBack()" style="margin-top:0.5rem;">← Back</button>
             </div>
-            <button class="btn-welcome" onclick="closeWelcomeModal()">Let's go →</button>
+
+            <!-- ===== STEP: QR scan ===== -->
+            <div class="onboard-step" data-step="qr" style="display:none;">
+                <h1>📷 Scan the QR code</h1>
+                <div class="w-sub">Point your camera at the QR code on your ESP32 kit's packaging.</div>
+
+                <div id="onboard-qr-status" style="padding:0.8rem 1rem;background:var(--bg-input);border:1px solid var(--border);border-radius:12px;color:#ffffff;font-size:0.85rem;margin:1rem 0;">Starting camera…</div>
+                <video id="onboard-qr-video" autoplay playsinline muted style="display:none;width:100%;max-height:260px;background:#000;border-radius:12px;margin-bottom:0.5rem;"></video>
+
+                <button class="btn-welcome onboard-secondary" onclick="onboardBack()">← Back</button>
+            </div>
+
+            <!-- ===== STEP: Manual pick ===== -->
+            <div class="onboard-step" data-step="manual" style="display:none;">
+                <h1>📋 Pick your board</h1>
+                <div class="w-sub">If you're not sure, pick <strong style="color:var(--orange);">ESP32 DevKit v1</strong> — it's the most common. You can change this later in Settings.</div>
+                <select id="onboard-manual-select" style="width:100%;padding:0.85rem;font-size:0.95rem;background:var(--bg-input);color:#ffffff;border:1px solid var(--border);border-radius:10px;margin:1rem 0;">
+                    <option value="ESP32 DevKit v1">ESP32 DevKit v1 (most common)</option>
+                    <option value="ESP32-S3">ESP32-S3 (has USB-C, great for AI + vision)</option>
+                    <option value="ESP32-C3">ESP32-C3 (small, low-power, RISC-V)</option>
+                    <option value="ESP32-S2">ESP32-S2 (single-core)</option>
+                    <option value="ESP32-WROOM-32">ESP32-WROOM-32 module</option>
+                    <option value="Adafruit HUZZAH32 Feather">Adafruit HUZZAH32 Feather</option>
+                    <option value="SparkFun ESP32 Thing">SparkFun ESP32 Thing</option>
+                    <option value="M5Stack (any)">M5Stack (any model)</option>
+                    <option value="ESP32 (generic — I'm not sure)">I'm not sure — treat as generic ESP32</option>
+                </select>
+                <button class="btn-welcome" onclick="onboardManualDone()">Save &amp; continue →</button>
+                <button class="btn-welcome onboard-secondary" onclick="onboardBack()" style="margin-top:0.55rem;">← Back</button>
+            </div>
+
+            <!-- ===== STEP: Done ===== -->
+            <div class="onboard-step" data-step="done" style="display:none;">
+                <h1>✨ You're all set</h1>
+                <div class="w-sub" id="onboard-done-msg">Time to build something cool.</div>
+                <div class="welcome-steps">
+                    <div class="welcome-step">
+                        <div class="w-num" style="background:linear-gradient(135deg,var(--orange),var(--coral));">📸</div>
+                        <div>
+                            <div class="w-title">Take a photo of your project</div>
+                            <div class="w-body">Snap your breadboard — AI reads what's on it and writes the code.</div>
+                        </div>
+                    </div>
+                    <div class="welcome-step">
+                        <div class="w-num" style="background:linear-gradient(135deg,var(--orange),var(--coral));">✨</div>
+                        <div>
+                            <div class="w-title">Describe what you want</div>
+                            <div class="w-body">Plain English in, commented Python code out. You learn as you read.</div>
+                        </div>
+                    </div>
+                    <div class="welcome-step">
+                        <div class="w-num" style="background:linear-gradient(135deg,var(--orange),var(--coral));">⚡</div>
+                        <div>
+                            <div class="w-title">Run it instantly</div>
+                            <div class="w-body">Python runs live on your ESP32 — no compile wait. Change a number, re-send, watch it happen.</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-welcome" onclick="closeWelcomeModal()">Let's go →</button>
+            </div>
+
         </div>
     </div>
 
@@ -1633,10 +1786,12 @@
             var desc = document.getElementById('ai-prompt').value.trim();
             var board = document.getElementById('ai-board').value;
             var components = document.getElementById('ai-components').value.trim();
+            var boardDesc = (settings && settings.boardDescription) ? settings.boardDescription : '';
             var lang = currentLanguage();
             var langLabel = (lang === 'cpp') ? 'Arduino C++' : 'MicroPython';
             var prompt = 'Write complete ' + langLabel + ' code for an ' + board + ':\n\n' + desc + '\n\n';
             prompt += 'Board: ' + board + '\nLanguage: ' + langLabel + '\n';
+            if (boardDesc) prompt += 'User\'s exact hardware setup: ' + boardDesc + '\n';
             if (components) prompt += 'Components: ' + components + '\n';
             prompt += '\nRemember: every line or small block needs a teaching comment. The user is a beginner — explain WHY.';
             return prompt;
@@ -1821,6 +1976,8 @@
         function closeWelcomeModal() {
             var m = document.getElementById('welcome-modal');
             if (m) m.classList.remove('visible');
+            onboardCloseCamera(); // make sure no camera is left running
+            onboardStopQR();
             try { localStorage.setItem('cwg-seen-welcome', '1'); } catch (e) {}
         }
         (function maybeShowWelcome() {
@@ -1832,9 +1989,229 @@
                 setTimeout(function () {
                     var m = document.getElementById('welcome-modal');
                     if (m) m.classList.add('visible');
+                    onboardGo('start');
                 }, 350);
             });
         })();
+
+        // ================================================================
+        // ONBOARDING — board identification via photo / QR / manual
+        // ================================================================
+        var onboardCameraStream = null;
+        var onboardQRStream = null;
+        var onboardQRTimer = null;
+
+        function onboardGo(step) {
+            document.querySelectorAll('.onboard-step').forEach(function(el) {
+                el.style.display = (el.getAttribute('data-step') === step) ? '' : 'none';
+            });
+            if (step === 'skip')    { closeWelcomeModal(); return; }
+            if (step === 'photo')   { onboardResetPhotoStep(); }
+            if (step === 'qr')      { onboardStartQR(); }
+            if (step === 'manual')  { /* nothing extra */ }
+        }
+
+        function onboardBack() {
+            onboardCloseCamera();
+            onboardStopQR();
+            onboardGo('start');
+        }
+
+        function onboardResetPhotoStep() {
+            document.getElementById('onboard-photo-buttons').style.display = 'grid';
+            document.getElementById('onboard-video').style.display = 'none';
+            document.getElementById('onboard-snap-controls').style.display = 'none';
+            document.getElementById('onboard-snap-controls').classList.remove('visible');
+            document.getElementById('onboard-preview').style.display = 'none';
+            document.getElementById('onboard-photo-status').style.display = 'none';
+        }
+
+        async function onboardOpenCamera() {
+            try {
+                onboardCameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: { ideal: 'environment' } },
+                    audio: false
+                });
+                var v = document.getElementById('onboard-video');
+                v.srcObject = onboardCameraStream;
+                v.style.display = 'block';
+                document.getElementById('onboard-photo-buttons').style.display = 'none';
+                var controls = document.getElementById('onboard-snap-controls');
+                controls.style.display = 'flex';
+                controls.classList.add('visible');
+            } catch (e) {
+                alert('Camera not available: ' + (e && e.message ? e.message : e) + '\n\nTry the Upload option instead.');
+                onboardResetPhotoStep();
+            }
+        }
+
+        function onboardCloseCamera() {
+            if (onboardCameraStream) {
+                onboardCameraStream.getTracks().forEach(function(t) { t.stop(); });
+                onboardCameraStream = null;
+            }
+            var v = document.getElementById('onboard-video');
+            if (v) { v.srcObject = null; v.style.display = 'none'; }
+            var c = document.getElementById('onboard-snap-controls');
+            if (c) { c.style.display = 'none'; c.classList.remove('visible'); }
+        }
+
+        function onboardSnap() {
+            var video = document.getElementById('onboard-video');
+            var canvas = document.getElementById('onboard-canvas');
+            canvas.width = video.videoWidth || 1280;
+            canvas.height = video.videoHeight || 720;
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            var dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            onboardCloseCamera();
+            onboardShowPhotoPreview(dataUrl);
+            onboardIdentifyFromImage(dataUrl.split(',')[1], 'image/jpeg');
+        }
+
+        function onboardHandlePhotoUpload(event) {
+            var file = event.target.files && event.target.files[0];
+            if (!file) return;
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var dataUrl = e.target.result;
+                onboardShowPhotoPreview(dataUrl);
+                onboardIdentifyFromImage(dataUrl.split(',')[1], file.type || 'image/jpeg');
+            };
+            reader.readAsDataURL(file);
+            event.target.value = '';
+        }
+
+        function onboardShowPhotoPreview(dataUrl) {
+            document.getElementById('onboard-photo-buttons').style.display = 'none';
+            var img = document.getElementById('onboard-preview');
+            img.src = dataUrl;
+            img.style.display = 'block';
+            var status = document.getElementById('onboard-photo-status');
+            status.textContent = '🔍 Analyzing your board…';
+            status.style.display = 'block';
+        }
+
+        async function onboardIdentifyFromImage(base64, mime) {
+            var status = document.getElementById('onboard-photo-status');
+            var key = settings && settings.keys && settings.keys.gemini;
+            if (!key) {
+                status.innerHTML = 'Hmm, to identify the board automatically I need a free Gemini API key. You can grab one at <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--orange);">aistudio.google.com/apikey</a> (30 seconds, no credit card), then paste it in Settings → Gemini. Or use "Pick from a list" instead.';
+                return;
+            }
+            try {
+                var prompt = 'Look at this photo and identify the exact ESP32 development board model, plus any obvious sensors/components/wiring you can see. ' +
+                    'Reply with a single concise sentence starting with the board name, then any attached components. ' +
+                    'If you cannot tell the exact variant, make your best guess and say so. ' +
+                    'Example reply: "ESP32 DevKit v1 with a push-button on GPIO 4 and an LED strip on GPIO 5." ' +
+                    'Keep it under 250 characters. Do not include disclaimers.';
+                var res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + encodeURIComponent(key), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [
+                                { text: prompt },
+                                { inline_data: { mime_type: mime, data: base64 } }
+                            ]
+                        }]
+                    })
+                });
+                if (!res.ok) {
+                    var err = await res.text();
+                    throw new Error('Gemini ' + res.status + ': ' + err.substring(0, 160));
+                }
+                var data = await res.json();
+                var text = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts)
+                    ? data.candidates[0].content.parts.map(function(p) { return p.text || ''; }).join('').trim()
+                    : '';
+                if (!text) text = 'ESP32 (unknown variant)';
+                status.innerHTML = '<strong style="color:var(--orange);">✓ I think I see:</strong><br>' + text +
+                    '<div style="margin-top:0.8rem;display:flex;gap:0.4rem;flex-wrap:wrap;">' +
+                    '<button class="btn-welcome" style="padding:0.55rem 1rem;flex:1;" onclick="onboardSaveBoard(' + JSON.stringify(text).replace(/"/g, '&quot;') + ')">That\'s right</button>' +
+                    '<button class="btn-welcome onboard-secondary" style="padding:0.55rem 1rem;" onclick="onboardGo(\'manual\')">Not quite</button>' +
+                    '</div>';
+            } catch (e) {
+                status.textContent = 'Couldn\'t identify it: ' + (e && e.message ? e.message : e) + '. Try "Pick from a list" instead.';
+            }
+        }
+
+        function onboardManualDone() {
+            var sel = document.getElementById('onboard-manual-select');
+            onboardSaveBoard(sel.value);
+        }
+
+        function onboardSaveBoard(description) {
+            settings.boardDescription = description;
+            try { localStorage.setItem('cwg-settings', JSON.stringify(settings)); } catch (e) {}
+            // Also populate the hidden ai-board dropdown for downstream code.
+            var boardSel = document.getElementById('ai-board');
+            if (boardSel) {
+                var match = null;
+                for (var i = 0; i < boardSel.options.length; i++) {
+                    if (description.toLowerCase().indexOf(boardSel.options[i].value.toLowerCase()) === 0) { match = boardSel.options[i].value; break; }
+                }
+                if (match) boardSel.value = match;
+            }
+            document.getElementById('onboard-done-msg').innerHTML = 'Saved: <strong style="color:var(--orange);">' + description + '</strong>.<br>Every piece of code the AI writes will be tuned to this.';
+            onboardGo('done');
+        }
+
+        // QR scanning via BarcodeDetector if available; otherwise graceful fallback.
+        async function onboardStartQR() {
+            var status = document.getElementById('onboard-qr-status');
+            var video = document.getElementById('onboard-qr-video');
+            if (typeof window.BarcodeDetector === 'undefined') {
+                status.innerHTML = 'Your browser doesn\'t support built-in QR scanning yet. Use <strong>"Take a photo"</strong> or <strong>"Pick from a list"</strong> instead.';
+                return;
+            }
+            try {
+                onboardQRStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: { ideal: 'environment' } },
+                    audio: false
+                });
+                video.srcObject = onboardQRStream;
+                video.style.display = 'block';
+                status.textContent = 'Looking for a QR code…';
+                var detector = new BarcodeDetector({ formats: ['qr_code'] });
+                onboardQRTimer = setInterval(async function () {
+                    try {
+                        var codes = await detector.detect(video);
+                        if (codes && codes.length > 0) {
+                            var raw = codes[0].rawValue || '';
+                            onboardStopQR();
+                            status.innerHTML = '✓ Found a code: <code style="color:var(--gold);font-size:0.78rem;word-break:break-all;">' + raw.substring(0, 200) + '</code><br>Using this to identify your board…';
+                            onboardInterpretQR(raw);
+                        }
+                    } catch (e) { /* keep polling */ }
+                }, 500);
+            } catch (e) {
+                status.textContent = 'Camera not available: ' + (e && e.message ? e.message : e) + '. Try "Take a photo" or "Pick from a list" instead.';
+            }
+        }
+
+        function onboardStopQR() {
+            if (onboardQRTimer) { clearInterval(onboardQRTimer); onboardQRTimer = null; }
+            if (onboardQRStream) {
+                onboardQRStream.getTracks().forEach(function(t) { t.stop(); });
+                onboardQRStream = null;
+            }
+            var v = document.getElementById('onboard-qr-video');
+            if (v) { v.srcObject = null; v.style.display = 'none'; }
+        }
+
+        function onboardInterpretQR(raw) {
+            // Best-effort: if the QR is a URL, save it as "board from <url>" and let AI use that later.
+            // If it's text that contains "ESP32", use it directly.
+            var lower = raw.toLowerCase();
+            var description;
+            if (lower.includes('esp32-s3')) description = 'ESP32-S3 (identified from package QR)';
+            else if (lower.includes('esp32-c3')) description = 'ESP32-C3 (identified from package QR)';
+            else if (lower.includes('esp32-s2')) description = 'ESP32-S2 (identified from package QR)';
+            else if (lower.includes('esp32')) description = 'ESP32 (identified from package QR: ' + raw.substring(0, 80) + ')';
+            else description = 'ESP32 (from QR code: ' + raw.substring(0, 80) + ')';
+            onboardSaveBoard(description);
+        }
 
         // ================================================================
         // SNAP & CODE — camera → Gemini or Ollama Vision → code
@@ -2244,6 +2621,242 @@
                 '    f = c * 9 / 5 + 32',
                 '    print("Chip temp:", c, "°C  /  ", f, "°F")',
                 '    time.sleep(1)     # Wait 1 second between readings.'
+            ].join('\n'),
+
+            servo: [
+                '# Little Motor (Servo) — Coding with Grandma (MicroPython)',
+                '#',
+                '# What it does: sweeps a servo motor back and forth between 0° and 180°.',
+                '# Wiring:       servo signal → Pin 13, servo red → 5V (VIN), servo brown/black → GND.',
+                '',
+                'from machine import Pin, PWM   # PWM = Pulse Width Modulation; it\'s how we tell the servo which angle to hold.',
+                'import time',
+                '',
+                'SERVO_PIN = 13',
+                '',
+                '# Servos expect a pulse every 20 ms (50 Hz). We set that up once.',
+                'servo = PWM(Pin(SERVO_PIN), freq=50)',
+                '',
+                '# Helper: convert an angle in degrees (0–180) into the "duty" number the servo understands.',
+                'def set_angle(deg):',
+                '    # At 50 Hz, the servo wants pulses between ~0.5 ms (0°) and ~2.5 ms (180°).',
+                '    # The duty value is out of 65535 over a 20 ms window.',
+                '    duty = int(1638 + (deg / 180.0) * (8192 - 1638))',
+                '    servo.duty_u16(duty)',
+                '',
+                'print("Sweeping the servo back and forth. Press the reset button to stop.")',
+                '',
+                'while True:',
+                '    # Sweep up: 0° → 180° in 10° steps.',
+                '    for angle in range(0, 181, 10):',
+                '        set_angle(angle)',
+                '        print("Angle:", angle)',
+                '        time.sleep_ms(50)',
+                '    # Sweep back: 180° → 0°.',
+                '    for angle in range(180, -1, -10):',
+                '        set_angle(angle)',
+                '        print("Angle:", angle)',
+                '        time.sleep_ms(50)'
+            ].join('\n'),
+
+            oled: [
+                '# Little Screen (OLED) — Coding with Grandma (MicroPython)',
+                '#',
+                '# What it does: shows a counter on a small 128×64 OLED display.',
+                '# Wiring:       OLED SDA → Pin 21, SCL → Pin 22, VCC → 3.3V, GND → GND.',
+                '# First-time setup: you\'ll need ssd1306.py on your board — the IDE offers to',
+                '# upload it automatically when you send this sketch.',
+                '',
+                'from machine import Pin, I2C  # I2C is the two-wire protocol the OLED uses to talk to us.',
+                'import ssd1306               # This is the MicroPython driver for the tiny OLED.',
+                'import time',
+                '',
+                'SDA_PIN = 21',
+                'SCL_PIN = 22',
+                'WIDTH = 128',
+                'HEIGHT = 64',
+                '',
+                '# Set up the I2C bus on the pins above.',
+                'i2c = I2C(0, scl=Pin(SCL_PIN), sda=Pin(SDA_PIN))',
+                '',
+                '# Create a display object we can write to.',
+                'display = ssd1306.SSD1306_I2C(WIDTH, HEIGHT, i2c)',
+                '',
+                'counter = 0',
+                '',
+                'while True:',
+                '    display.fill(0)                                # Clear the screen (0 = black pixel).',
+                '    display.text("Coding with", 0, 0)              # text(string, x, y)',
+                '    display.text("Grandma!", 0, 12)',
+                '    display.text("Count: " + str(counter), 0, 32)  # Show the counter.',
+                '    display.show()                                 # Actually push the pixels to the screen.',
+                '    counter += 1',
+                '    time.sleep(1)'
+            ].join('\n'),
+
+            pir: [
+                '# Motion Detector (PIR) — Coding with Grandma (MicroPython)',
+                '#',
+                '# What it does: lights up the built-in LED whenever motion is detected.',
+                '# Wiring:       PIR signal → Pin 13, VCC → 5V (VIN), GND → GND.',
+                '# Tip:          PIR sensors need ~30 seconds to "settle" after power-up before they work properly.',
+                '',
+                'from machine import Pin',
+                'import time',
+                '',
+                'PIR_PIN = 13   # The data pin from the PIR sensor.',
+                'LED_PIN = 2    # Built-in LED pin.',
+                '',
+                'pir = Pin(PIR_PIN, Pin.IN)        # PIR sends us signals, so it\'s an INPUT.',
+                'led = Pin(LED_PIN, Pin.OUT)       # We light up the LED, so it\'s an OUTPUT.',
+                '',
+                'print("PIR warming up… give it 2 seconds to settle.")',
+                'time.sleep(2)',
+                'print("Ready — watching for motion.")',
+                '',
+                'while True:',
+                '    if pir.value() == 1:             # 1 means the sensor saw motion.',
+                '        led.value(1)                 # Turn on the LED.',
+                '        print("Motion detected!")',
+                '    else:',
+                '        led.value(0)                 # No motion → turn LED off.',
+                '    time.sleep_ms(100)               # Check 10 times a second.'
+            ].join('\n'),
+
+            ultrasonic: [
+                '# Distance Sensor (HC-SR04) — Coding with Grandma (MicroPython)',
+                '#',
+                '# What it does: measures how far away something is, in centimeters, using sound echoes.',
+                '# Wiring:       Trig → Pin 12, Echo → Pin 14, VCC → 5V (VIN), GND → GND.',
+                '# How it works: the sensor sends out a quick ultrasonic "chirp" and times how long',
+                '#               it takes to come back. Sound travels ~343 m/s, so we can math the distance.',
+                '',
+                'from machine import Pin, time_pulse_us  # time_pulse_us times how long a pin stays HIGH.',
+                'import time',
+                '',
+                'TRIG_PIN = 12',
+                'ECHO_PIN = 14',
+                '',
+                'trig = Pin(TRIG_PIN, Pin.OUT)',
+                'echo = Pin(ECHO_PIN, Pin.IN)',
+                '',
+                'def measure_cm():',
+                '    # Send the chirp: 10-microsecond HIGH pulse on TRIG.',
+                '    trig.value(0)',
+                '    time.sleep_us(2)',
+                '    trig.value(1)',
+                '    time.sleep_us(10)',
+                '    trig.value(0)',
+                '    # Measure how long ECHO stays HIGH (microseconds until we hear the echo come back).',
+                '    duration_us = time_pulse_us(echo, 1, 30000)   # Give up after 30 ms.',
+                '    if duration_us < 0:',
+                '        return -1   # No echo came back.',
+                '    # Speed of sound ≈ 0.0343 cm/µs. Divide by 2 because the sound went there AND back.',
+                '    return (duration_us * 0.0343) / 2',
+                '',
+                'print("Measuring distance every quarter second…")',
+                '',
+                'while True:',
+                '    cm = measure_cm()',
+                '    if cm < 0:',
+                '        print("Nothing in range.")',
+                '    else:',
+                '        print("Distance:", round(cm, 1), "cm")',
+                '    time.sleep_ms(250)'
+            ].join('\n'),
+
+            ble: [
+                '# Bluetooth Chat (BLE) — Coding with Grandma (MicroPython)',
+                '#',
+                '# What it does: advertises a Bluetooth LE service your phone can connect to and send',
+                '#               messages to. Whatever you type on the phone shows up in the serial output.',
+                '# App to use:   "nRF Connect" or "LightBlue" on your phone — free, works great.',
+                '',
+                'import bluetooth                                 # MicroPython\'s built-in BLE library.',
+                'from micropython import const                    # const() optimizes constants for the chip.',
+                '',
+                '# Magic IDs that identify our little service. Phones look for these.',
+                '_IRQ_CENTRAL_CONNECT = const(1)',
+                '_IRQ_CENTRAL_DISCONNECT = const(2)',
+                '_IRQ_GATTS_WRITE = const(3)',
+                '',
+                '# Service + characteristic UUIDs — you can change these if you want.',
+                '_UART_UUID = bluetooth.UUID("6E400001-B5A3-F393-E0A9-E50E24DCCA9E")',
+                '_UART_RX   = (bluetooth.UUID("6E400002-B5A3-F393-E0A9-E50E24DCCA9E"), bluetooth.FLAG_WRITE,)',
+                '_UART_TX   = (bluetooth.UUID("6E400003-B5A3-F393-E0A9-E50E24DCCA9E"), bluetooth.FLAG_NOTIFY,)',
+                '_UART_SERVICE = (_UART_UUID, (_UART_TX, _UART_RX,),)',
+                '',
+                'NAME = "CodingWithGrandma"   # The name your phone will see.',
+                '',
+                '# Fire up the BLE radio.',
+                'ble = bluetooth.BLE()',
+                'ble.active(True)',
+                '',
+                '# Register our service and keep the handles for read/write.',
+                '((tx_handle, rx_handle,),) = ble.gatts_register_services((_UART_SERVICE,))',
+                '',
+                'def on_ble_event(event, data):',
+                '    if event == _IRQ_CENTRAL_CONNECT:',
+                '        print("Phone connected!")',
+                '    elif event == _IRQ_CENTRAL_DISCONNECT:',
+                '        print("Phone disconnected.")',
+                '        advertise()   # Start advertising again so it can reconnect.',
+                '    elif event == _IRQ_GATTS_WRITE:',
+                '        msg = ble.gatts_read(rx_handle)',
+                '        print("Got:", msg.decode())',
+                '',
+                'ble.irq(on_ble_event)',
+                '',
+                'def advertise():',
+                '    payload = b"\\x02\\x01\\x06" + bytes([len(NAME) + 1, 0x09]) + NAME.encode()',
+                '    ble.gap_advertise(100_000, payload)',
+                '',
+                'advertise()',
+                'print("Advertising as", NAME, "— connect from your phone!")'
+            ].join('\n'),
+
+            joystick: [
+                '# Joystick — Coding with Grandma (MicroPython)',
+                '#',
+                '# What it does: reads the two analog axes + the push-button on a thumb-joystick, prints direction.',
+                '# Wiring:       VRx → Pin 34, VRy → Pin 35, SW → Pin 32, VCC → 3.3V, GND → GND.',
+                '# Note:         pins 34 and 35 are "analog-in only" on the ESP32. That\'s fine for this.',
+                '',
+                'from machine import Pin, ADC',
+                'import time',
+                '',
+                'X_PIN = 34',
+                'Y_PIN = 35',
+                'SW_PIN = 32',
+                '',
+                '# ADC = Analog-to-Digital Converter. It turns voltage on a pin into a number.',
+                'x_adc = ADC(Pin(X_PIN))',
+                'y_adc = ADC(Pin(Y_PIN))',
+                'x_adc.atten(ADC.ATTN_11DB)   # Let us read the full 0–3.3V range.',
+                'y_adc.atten(ADC.ATTN_11DB)',
+                '',
+                'button = Pin(SW_PIN, Pin.IN, Pin.PULL_UP)',
+                '',
+                'CENTER = 2048       # Midpoint of the 0–4095 ADC range.',
+                'DEADZONE = 400      # Small moves near center shouldn\'t count — they\'re just noise.',
+                '',
+                'print("Move the joystick!")',
+                '',
+                'while True:',
+                '    x = x_adc.read()',
+                '    y = y_adc.read()',
+                '    pressed = button.value() == 0',
+                '',
+                '    # Figure out direction from X/Y.',
+                '    direction = ""',
+                '    if y < CENTER - DEADZONE: direction += "UP "',
+                '    if y > CENTER + DEADZONE: direction += "DOWN "',
+                '    if x < CENTER - DEADZONE: direction += "LEFT "',
+                '    if x > CENTER + DEADZONE: direction += "RIGHT "',
+                '    if not direction: direction = "center"',
+                '',
+                '    print("x={:4d} y={:4d}  {}{}".format(x, y, direction, "[CLICK]" if pressed else ""))',
+                '    time.sleep_ms(150)'
             ].join('\n'),
 
             webserver: [
