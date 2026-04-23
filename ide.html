@@ -826,11 +826,9 @@
                 <i data-lucide="menu" style="width:16px;height:16px;"></i>
             </button>
             <span class="logo">Coding with Grandma</span>
-            <span class="logo-sub">ESP32 Edition</span>
-            <span class="version-badge">v0.4</span>
-            <div class="connection-status">
+            <div class="connection-status" title="Plug your ESP32 into your computer via USB, then click 'Plug in Board'.">
                 <span class="status-dot" id="status-dot"></span>
-                <span id="status-text">No board connected</span>
+                <span id="status-text">No board</span>
             </div>
             <div class="save-indicator" id="save-indicator" title="Your work is saved automatically — no button needed.">
                 <span class="save-dot"></span>
@@ -838,10 +836,11 @@
             </div>
         </div>
         <div class="topbar-actions">
-            <button class="btn" onclick="openSketch()" title="Open a project file you saved before">
+            <!-- Open + Download hidden by default — Ctrl+O / Ctrl+S keyboard shortcuts still work for power users -->
+            <button class="btn" onclick="openSketch()" title="Open a project file" style="display:none;">
                 <i data-lucide="folder-open" style="width:14px;height:14px;"></i> <span class="btn-label">Open</span>
             </button>
-            <button class="btn" onclick="saveSketch()" title="Download a copy of your code to keep or share (your work is auto-saved anyway)">
+            <button class="btn" onclick="saveSketch()" title="Download a copy" style="display:none;">
                 <i data-lucide="download" style="width:14px;height:14px;"></i> <span class="btn-label">Download</span>
             </button>
             <button class="btn" onclick="connectBoard()" title="Plug your ESP32 into your computer with a USB cable, then click this">
@@ -956,21 +955,16 @@
                     <textarea id="ai-prompt" rows="4" placeholder="Example: blink an LED every second, or read the temperature and show it on the screen, or make a robot that avoids walls — describe it in your own words"></textarea>
                 </div>
 
-                <div class="section" style="display:flex;gap:0.5rem;">
-                    <div style="flex:1;">
-                        <span class="section-label">Board</span>
-                        <select id="ai-board">
-                            <option value="ESP32 DevKit v1">ESP32 DevKit v1</option>
-                            <option value="ESP32-S3">ESP32-S3</option>
-                            <option value="ESP32-C3">ESP32-C3</option>
-                            <option value="ESP32 (generic)">Not sure</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="section">
-                    <span class="section-label">Components (optional)</span>
-                    <input type="text" id="ai-components" placeholder="LED, temperature sensor, OLED screen...">
+                <!-- Board selector + Components input hidden for beginners — AI infers these from the description.
+                     Advanced users can still set them via the browser console: document.getElementById('ai-board').value = '...' -->
+                <div class="section" style="display:none;">
+                    <select id="ai-board">
+                        <option value="ESP32 DevKit v1">ESP32 DevKit v1</option>
+                        <option value="ESP32-S3">ESP32-S3</option>
+                        <option value="ESP32-C3">ESP32-C3</option>
+                        <option value="ESP32 (generic)">Not sure</option>
+                    </select>
+                    <input type="text" id="ai-components" placeholder="components">
                 </div>
 
                 <button class="btn btn-orange" id="generate-btn" style="width:100%;justify-content:center;margin-bottom:0.6rem;padding:0.65rem;font-size:0.9rem;" onclick="generateWithAI()">
@@ -1250,9 +1244,7 @@
 
         <!-- CENTER: CODE EDITOR -->
         <div class="editor-area" style="position:relative;">
-            <div class="editor-tabs">
-                <div class="editor-tab active">My Code</div>
-            </div>
+            <!-- Editor tab header removed for a cleaner single-file experience -->
             <div id="editor-container"></div>
 
             <div class="loading-overlay" id="loading-overlay">
@@ -1270,7 +1262,6 @@
         <div class="bottom-tabs">
             <div class="bottom-tabs-left">
                 <button class="bottom-tab active" title="Messages from your ESP32 show up here">Board Messages</button>
-                <button class="bottom-tab">Log</button>
             </div>
             <div class="bottom-tabs-right">
                 <!-- baud rate hidden for beginners; 115200 is the standard default and works for all starter templates. Advanced users can still read the value from JS. -->
