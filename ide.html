@@ -706,20 +706,20 @@
             </div>
         </div>
         <div class="topbar-actions">
-            <button class="btn" onclick="openSketch()" title="Open a saved .ino file">
+            <button class="btn" onclick="openSketch()" title="Open a project file you saved before">
                 <i data-lucide="folder-open" style="width:14px;height:14px;"></i> <span class="btn-label">Open</span>
             </button>
-            <button class="btn" onclick="saveSketch()" title="Download sketch as .ino">
-                <i data-lucide="save" style="width:14px;height:14px;"></i> <span class="btn-label">Save</span>
+            <button class="btn" onclick="saveSketch()" title="Download a copy of your code to keep or share (your work is auto-saved anyway)">
+                <i data-lucide="download" style="width:14px;height:14px;"></i> <span class="btn-label">Download</span>
             </button>
-            <button class="btn" onclick="connectBoard()">
-                <i data-lucide="usb" style="width:14px;height:14px;"></i> <span class="btn-label">Connect</span>
+            <button class="btn" onclick="connectBoard()" title="Plug your ESP32 into your computer with a USB cable, then click this">
+                <i data-lucide="usb" style="width:14px;height:14px;"></i> <span class="btn-label">Plug in Board</span>
             </button>
-            <button class="btn btn-blue" onclick="verifyCode()">
-                <i data-lucide="check-circle" style="width:14px;height:14px;"></i> <span class="btn-label">Verify</span>
+            <button class="btn btn-blue" onclick="verifyCode()" title="Check your code for common mistakes">
+                <i data-lucide="check-circle" style="width:14px;height:14px;"></i> <span class="btn-label">Check</span>
             </button>
-            <button class="btn btn-green" onclick="openFlashModal()" title="Flash a compiled .bin firmware">
-                <i data-lucide="zap" style="width:14px;height:14px;"></i> <span class="btn-label">Flash</span>
+            <button class="btn btn-green" onclick="openFlashModal()" title="Send your finished code to the ESP32 so it starts running">
+                <i data-lucide="zap" style="width:14px;height:14px;"></i> <span class="btn-label">Send to Board</span>
             </button>
         </div>
         <!-- hidden file pickers -->
@@ -732,25 +732,25 @@
         <!-- LEFT SIDEBAR -->
         <div class="sidebar">
             <div class="sidebar-tabs">
-                <button class="sidebar-tab active" onclick="switchSidebarTab('ai')">
-                    <i data-lucide="bot" style="width:14px;height:14px;"></i> AI
+                <button class="sidebar-tab active" onclick="switchSidebarTab('snap')" title="Take a photo of your breadboard and let AI write the code">
+                    <i data-lucide="camera" style="width:14px;height:14px;"></i> Photo
                 </button>
-                <button class="sidebar-tab" onclick="switchSidebarTab('templates')">
-                    <i data-lucide="layout-template" style="width:14px;height:14px;"></i> Templates
+                <button class="sidebar-tab" onclick="switchSidebarTab('ai')" title="Describe what you want to build in plain English">
+                    <i data-lucide="sparkles" style="width:14px;height:14px;"></i> Build
                 </button>
-                <button class="sidebar-tab" onclick="switchSidebarTab('lessons')">
-                    <i data-lucide="graduation-cap" style="width:14px;height:14px;"></i> Lessons
+                <button class="sidebar-tab" onclick="switchSidebarTab('templates')" title="Ready-made starter projects">
+                    <i data-lucide="lightbulb" style="width:14px;height:14px;"></i> Examples
                 </button>
-                <button class="sidebar-tab" onclick="switchSidebarTab('snap')">
-                    <i data-lucide="camera" style="width:14px;height:14px;"></i> Snap
+                <button class="sidebar-tab" onclick="switchSidebarTab('lessons')" title="Step-by-step lessons">
+                    <i data-lucide="graduation-cap" style="width:14px;height:14px;"></i> Learn
                 </button>
-                <button class="sidebar-tab" onclick="switchSidebarTab('settings')">
-                    <i data-lucide="settings" style="width:14px;height:14px;"></i> Settings
+                <button class="sidebar-tab" onclick="switchSidebarTab('settings')" title="Options and API key" style="flex:0 0 auto;padding-left:0.55rem;padding-right:0.55rem;">
+                    <i data-lucide="settings" style="width:14px;height:14px;"></i>
                 </button>
             </div>
 
-            <!-- AI PANEL -->
-            <div class="sidebar-panel active" id="panel-ai">
+            <!-- BUILD (AI) PANEL -->
+            <div class="sidebar-panel" id="panel-ai">
 
                 <div class="section">
                     <span class="section-label">AI Provider</span>
@@ -814,8 +814,8 @@
                 </div>
 
                 <div class="section">
-                    <span class="section-label">Describe your project</span>
-                    <textarea id="ai-prompt" rows="4" placeholder="Example: Blink an LED every second and print the count to the serial monitor"></textarea>
+                    <span class="section-label">Tell us what you want to build</span>
+                    <textarea id="ai-prompt" rows="4" placeholder="Example: blink an LED every second, or read the temperature and show it on the screen, or make a robot that avoids walls — describe it in your own words"></textarea>
                 </div>
 
                 <div class="section" style="display:flex;gap:0.5rem;">
@@ -836,16 +836,16 @@
                 </div>
 
                 <button class="btn btn-orange" id="generate-btn" style="width:100%;justify-content:center;margin-bottom:0.6rem;padding:0.65rem;font-size:0.9rem;" onclick="generateWithAI()">
-                    <i data-lucide="sparkles" style="width:16px;height:16px;"></i> Generate Code with AI
+                    <i data-lucide="sparkles" style="width:16px;height:16px;"></i> Write My Code
                 </button>
 
                 <div class="section">
-                    <span class="section-label">AI Response</span>
+                    <span class="section-label">What the AI wrote</span>
                     <div class="ai-response-area" id="ai-response">
-                        Pick a provider above, describe your project, and click Generate!
+                        Describe your project above, then click <strong>Write My Code</strong>. The AI will explain what it's doing and write the code for you.
                     </div>
                     <button class="btn btn-sm" id="insert-code-btn" style="margin-top:0.4rem;display:none;" onclick="insertGeneratedCode()">
-                        <i data-lucide="code" style="width:12px;height:12px;"></i> Insert Code into Editor
+                        <i data-lucide="code" style="width:12px;height:12px;"></i> Use This Code
                     </button>
                 </div>
             </div>
@@ -939,12 +939,15 @@
                 </div>
             </div>
 
-            <!-- SNAP & CODE PANEL -->
-            <div class="sidebar-panel" id="panel-snap">
+            <!-- PHOTO (SNAP & CODE) PANEL — DEFAULT ACTIVE ON LOAD -->
+            <div class="sidebar-panel active" id="panel-snap">
                 <div class="section">
-                    <span class="section-label">Snap &amp; Code</span>
-                    <p style="font-size:0.75rem;color:var(--text-dimmer);margin-bottom:0.7rem;line-height:1.5;">
-                        Take a photo of your breadboard — AI identifies the parts and writes code for what it sees.
+                    <span class="section-label" style="font-size:0.85rem;color:var(--orange);">📸 Take a photo of your project</span>
+                    <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.7rem;line-height:1.55;">
+                        Point your camera at your breadboard and snap a picture. The AI will figure out what parts are connected and <strong style="color:var(--gold);">write the code for you</strong> — no typing needed.
+                    </p>
+                    <p style="font-size:0.7rem;color:var(--text-dimmer);margin-bottom:0.9rem;line-height:1.4;">
+                        On a phone? Tap <strong>Upload</strong> and pick from your photo library.
                     </p>
 
                     <span class="section-label">Vision Provider</span>
@@ -1093,7 +1096,7 @@
         <!-- CENTER: CODE EDITOR -->
         <div class="editor-area" style="position:relative;">
             <div class="editor-tabs">
-                <div class="editor-tab active">sketch.ino</div>
+                <div class="editor-tab active">My Code</div>
             </div>
             <div id="editor-container"></div>
 
@@ -1111,24 +1114,25 @@
     <div class="bottom-panel" id="bottom-panel">
         <div class="bottom-tabs">
             <div class="bottom-tabs-left">
-                <button class="bottom-tab active">Serial Monitor</button>
-                <button class="bottom-tab">Output</button>
+                <button class="bottom-tab active" title="Messages from your ESP32 show up here">Board Messages</button>
+                <button class="bottom-tab">Log</button>
             </div>
             <div class="bottom-tabs-right">
-                <select class="baud-select" id="baud-rate">
+                <!-- baud rate hidden for beginners; 115200 is the standard default and works for all starter templates. Advanced users can still read the value from JS. -->
+                <select class="baud-select" id="baud-rate" style="display:none;">
                     <option value="9600">9600 baud</option>
                     <option value="115200" selected>115200 baud</option>
                     <option value="57600">57600 baud</option>
                 </select>
-                <button class="btn btn-sm" onclick="clearSerial()">Clear</button>
+                <button class="btn btn-sm" onclick="clearSerial()" title="Clear the messages below">Clear</button>
             </div>
         </div>
         <div class="serial-output" id="serial-output">
-            <div class="sys-msg">Coding with Grandma v0.4 — Serial Monitor ready.</div>
-            <div class="sys-msg">Click "Connect" to talk to your ESP32, or "Flash" to upload firmware.</div>
+            <div class="sys-msg">👋 Hi! Messages from your ESP32 board will show up here.</div>
+            <div class="sys-msg">Plug in your board and click <strong>Plug in Board</strong> at the top, then send your code with <strong>Send to Board</strong>.</div>
         </div>
         <div class="serial-input-row">
-            <input type="text" id="serial-input" placeholder="Type a message to send to the board..." onkeydown="if(event.key==='Enter')sendSerial()">
+            <input type="text" id="serial-input" placeholder="Type a message to send back to the board..." onkeydown="if(event.key==='Enter')sendSerial()">
             <button onclick="sendSerial()">Send</button>
         </div>
     </div>
@@ -1160,38 +1164,41 @@
     <!-- FLASH FIRMWARE MODAL -->
     <div class="modal-overlay" id="flash-modal">
         <div class="modal" style="max-width:540px;">
-            <h2><i data-lucide="zap" style="width:18px;height:18px;vertical-align:-3px;color:var(--orange);"></i> Flash ESP32 Firmware</h2>
+            <h2><i data-lucide="zap" style="width:18px;height:18px;vertical-align:-3px;color:var(--orange);"></i> Send Your Code to the Board</h2>
             <p class="hint">
-                Upload a precompiled <code>.bin</code> file directly from your browser — no Arduino IDE needed.
-                Disconnect the serial monitor first if it's open. Flashing works in Chrome and Edge.
+                This sends your finished code to the ESP32 so it starts running on the board.
+                Works in Chrome and Edge. If the board messages panel is busy, it'll pause while we send.
             </p>
             <p class="hint">
-                <strong style="color:var(--gold);">Don't have a .bin yet?</strong> Compile your sketch in Arduino IDE
-                (Sketch → Export Compiled Binary), then pick the generated <code>.bin</code> file here. Full in-browser
-                compilation is on the roadmap.
+                <strong style="color:var(--gold);">First time?</strong> You need a compiled <code>.bin</code> file
+                (a packaged version of your code). We're working on making this happen automatically — for now,
+                drop in a <code>.bin</code> you already have below.
             </p>
             <div class="flash-row">
-                <label>Firmware file (.bin)</label>
+                <label>Your code file (.bin)</label>
                 <input type="file" id="flash-bin-file" accept=".bin">
             </div>
-            <div class="flash-row">
-                <label>Flash offset (hex)</label>
-                <input type="text" id="flash-offset" value="0x10000" style="font-family:ui-monospace,monospace;">
-                <select id="flash-baud">
-                    <option value="115200">115200 baud</option>
-                    <option value="230400">230400</option>
-                    <option value="460800">460800</option>
-                    <option value="921600" selected>921600 (fast)</option>
-                </select>
-            </div>
-            <p class="hint">Default offset <code>0x10000</code> is the standard app partition for the Arduino ESP32 core. Advanced users can change it.</p>
+            <details style="margin:0.6rem 0;">
+                <summary style="cursor:pointer;color:var(--text-dim);font-size:0.78rem;user-select:none;padding:0.3rem 0;">Advanced options (you probably don't need these)</summary>
+                <div class="flash-row" style="margin-top:0.5rem;">
+                    <label>Where to put it (memory address)</label>
+                    <input type="text" id="flash-offset" value="0x10000" style="font-family:ui-monospace,monospace;">
+                    <select id="flash-baud">
+                        <option value="115200">115200 (safe)</option>
+                        <option value="230400">230400</option>
+                        <option value="460800">460800</option>
+                        <option value="921600" selected>921600 (fast)</option>
+                    </select>
+                </div>
+                <p class="hint" style="margin-top:0.3rem;">The default <code>0x10000</code> works for almost every ESP32 project. Change only if you know why.</p>
+            </details>
             <div class="progress-wrap"><div class="progress-bar" id="flash-progress"></div></div>
             <div class="progress-text" id="flash-progress-text">Ready.</div>
             <div class="flash-log" id="flash-log" style="display:none;"></div>
             <div class="modal-actions">
                 <button class="btn" onclick="closeFlashModal()">Close</button>
                 <button class="btn btn-orange" id="flash-start-btn" onclick="startFlash()">
-                    <i data-lucide="zap" style="width:14px;height:14px;"></i> Start Flash
+                    <i data-lucide="zap" style="width:14px;height:14px;"></i> Send It
                 </button>
             </div>
         </div>
@@ -1740,7 +1747,7 @@
             document.querySelectorAll('.sidebar-tab').forEach(function(t) { t.classList.remove('active'); });
             document.querySelectorAll('.sidebar-panel').forEach(function(p) { p.classList.remove('active'); });
             var tabs = document.querySelectorAll('.sidebar-tab');
-            var idx = { ai: 0, templates: 1, lessons: 2, snap: 3, settings: 4 }[tab];
+            var idx = { snap: 0, ai: 1, templates: 2, lessons: 3, settings: 4 }[tab];
             if (tabs[idx]) tabs[idx].classList.add('active');
             var panel = document.getElementById('panel-' + tab);
             if (panel) panel.classList.add('active');
@@ -1818,10 +1825,51 @@
                 }
             });
 
-            // Load autosaved sketch if present, otherwise start with the Blink template
+            // Load autosaved sketch if present, otherwise show a friendly welcome
             var savedDraft = null;
             try { savedDraft = localStorage.getItem('cwg-autosave'); } catch (e) {}
-            var initialValue = (savedDraft && savedDraft.length > 0) ? savedDraft : templates.blink;
+            var welcomeCode = [
+                '/*',
+                ' * 👋 Welcome to Coding with Grandma!',
+                ' *',
+                ' * Here are three ways to get started:',
+                ' *',
+                ' *   📸 Photo tab   — Snap a picture of your breadboard and the AI',
+                ' *                    writes code for whatever it sees.',
+                ' *',
+                ' *   ✨ Build tab   — Describe what you want to build in plain English.',
+                ' *                    The AI writes the code for you.',
+                ' *',
+                ' *   💡 Examples    — Pick a ready-made starter project. Great',
+                ' *                    for learning what the code looks like.',
+                ' *',
+                ' * Your work saves automatically, so don\'t worry about losing anything.',
+                ' *',
+                ' * When you\'re ready, plug in your ESP32 via USB and click',
+                ' * "Plug in Board" at the top, then "Send to Board" to run it.',
+                ' *',
+                ' * (This sample code blinks the onboard LED once a second — try it!)',
+                ' */',
+                '',
+                'const int LED_PIN = 2;',
+                '',
+                'void setup() {',
+                '    Serial.begin(115200);',
+                '    Serial.println("Hello from your ESP32!");',
+                '    pinMode(LED_PIN, OUTPUT);',
+                '}',
+                '',
+                'void loop() {',
+                '    digitalWrite(LED_PIN, HIGH);',
+                '    Serial.println("LED on");',
+                '    delay(1000);',
+                '    digitalWrite(LED_PIN, LOW);',
+                '    Serial.println("LED off");',
+                '    delay(1000);',
+                '}',
+                ''
+            ].join('\n');
+            var initialValue = (savedDraft && savedDraft.length > 0) ? savedDraft : welcomeCode;
 
             editor = monaco.editor.create(document.getElementById('editor-container'), {
                 value: initialValue,
@@ -1923,7 +1971,7 @@
             var input = document.getElementById('serial-input');
             if (!input.value) return;
             if (serialWriter) { await serialWriter.write(input.value + '\n'); serialLog('> ' + input.value, 'sys'); input.value = ''; }
-            else serialLog('Not connected. Click "Connect Board" first.', 'warn');
+            else serialLog('Your board isn\'t plugged in yet. Click "Plug in Board" at the top first.', 'warn');
         }
 
         function serialLog(msg, type) {
