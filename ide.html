@@ -75,6 +75,134 @@
             0%, 100% { box-shadow: 0 0 15px rgba(255, 140, 66, 0.2); }
             50% { box-shadow: 0 0 25px rgba(255, 140, 66, 0.4); }
         }
+        @keyframes heroPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 140, 66, 0.35), 0 8px 24px -6px rgba(255, 140, 66, 0.45); }
+            50%      { box-shadow: 0 0 0 10px rgba(255, 140, 66, 0.0),  0 10px 30px -4px rgba(255, 140, 66, 0.55); }
+        }
+        @keyframes savedPulse {
+            0%   { opacity: 0; transform: translateX(-4px) scale(0.9); }
+            15%  { opacity: 1; transform: translateX(0) scale(1.02); }
+            70%  { opacity: 1; transform: translateX(0) scale(1); }
+            100% { opacity: 0; transform: translateX(0) scale(1); }
+        }
+
+        /* ===== SAVE INDICATOR ===== */
+        .save-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.55rem;
+            background: rgba(46, 204, 113, 0.10);
+            border: 1px solid rgba(46, 204, 113, 0.25);
+            border-radius: 999px;
+            font-size: 0.7rem;
+            color: #ffffff;
+            margin-left: 0.5rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .save-indicator.pulse { animation: savedPulse 1.6s ease forwards; }
+        .save-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 6px var(--green);
+        }
+        .save-text { letter-spacing: 0.02em; font-weight: 500; }
+
+        /* ===== HERO SNAP BUTTON ===== */
+        .hero-snap-btn {
+            width: 100%;
+            padding: 1.1rem 1rem;
+            background: linear-gradient(135deg, var(--orange) 0%, var(--coral) 100%);
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 1rem;
+            letter-spacing: 0.02em;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            animation: heroPulse 3.2s ease-in-out infinite;
+            transition: transform 0.15s ease, filter 0.15s ease;
+        }
+        .hero-snap-btn:hover { transform: translateY(-1px); filter: brightness(1.08); }
+        .hero-snap-btn:active { transform: translateY(0); }
+
+        /* ===== WELCOME MODAL ===== */
+        .welcome-modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.72);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            animation: fadeIn 0.4s ease;
+        }
+        .welcome-modal-overlay.visible { display: flex; }
+        .welcome-modal {
+            max-width: 520px;
+            width: calc(100% - 2rem);
+            background: linear-gradient(160deg, #0f1f3d 0%, #0b1628 100%);
+            border: 1px solid var(--border-light);
+            border-radius: 18px;
+            padding: 2rem 1.8rem;
+            color: #ffffff;
+            box-shadow: 0 24px 80px -12px rgba(0,0,0,0.7), 0 0 40px -8px rgba(255,140,66,0.15);
+        }
+        .welcome-modal h1 {
+            font-size: 1.65rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--orange), var(--gold), var(--coral));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.4rem;
+            letter-spacing: -0.5px;
+        }
+        .welcome-modal .w-sub {
+            color: #ffffff;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 1.3rem;
+            font-weight: 400;
+        }
+        .welcome-steps { display: grid; gap: 0.7rem; margin-bottom: 1.4rem; }
+        .welcome-step {
+            display: flex; gap: 0.85rem; align-items: flex-start;
+            padding: 0.75rem 0.85rem;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+        .welcome-step .w-num {
+            flex: 0 0 28px;
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--orange), var(--coral));
+            color: #fff; font-weight: 700; font-size: 0.85rem;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .welcome-step .w-title { color: #ffffff; font-weight: 600; font-size: 0.95rem; margin-bottom: 0.1rem; }
+        .welcome-step .w-body  { color: var(--text-dim); font-size: 0.82rem; line-height: 1.5; }
+        .welcome-modal .btn-welcome {
+            width: 100%;
+            padding: 0.85rem;
+            background: linear-gradient(135deg, var(--orange), var(--coral));
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            letter-spacing: 0.02em;
+            transition: filter 0.15s ease;
+        }
+        .welcome-modal .btn-welcome:hover { filter: brightness(1.1); }
 
         .loading-spinner {
             width: 16px; height: 16px;
@@ -704,6 +832,10 @@
                 <span class="status-dot" id="status-dot"></span>
                 <span id="status-text">No board connected</span>
             </div>
+            <div class="save-indicator" id="save-indicator" title="Your work is saved automatically — no button needed.">
+                <span class="save-dot"></span>
+                <span class="save-text">Saved</span>
+            </div>
         </div>
         <div class="topbar-actions">
             <button class="btn" onclick="openSketch()" title="Open a project file you saved before">
@@ -753,54 +885,60 @@
             <div class="sidebar-panel" id="panel-ai">
 
                 <div class="section">
-                    <span class="section-label">AI Provider</span>
-
-                    <div class="provider-card selected" onclick="selectProvider('ollama')" id="provider-ollama">
-                        <div class="provider-icon" style="background:linear-gradient(135deg,#1a1a2e,#16213e);color:#00d4ff;">O</div>
-                        <div class="provider-info">
-                            <div class="provider-name">Ollama (Local)</div>
-                            <div class="provider-desc">Free — runs on your computer</div>
-                        </div>
-                        <span class="provider-status checking" id="ollama-status">Checking</span>
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem;">
+                        <span class="section-label" style="color:#ffffff;font-size:0.82rem;letter-spacing:0.02em;">Using <span id="current-provider-label" style="color:var(--orange);">Gemini</span></span>
+                        <a href="#" onclick="event.preventDefault();var e=document.getElementById('provider-cards-expand');e.open=!e.open;" style="font-size:0.72rem;color:var(--blue);text-decoration:none;">Change AI ▸</a>
                     </div>
 
-                    <div class="provider-card" onclick="selectProvider('claude')" id="provider-claude">
-                        <div class="provider-icon" style="background:linear-gradient(135deg,#d4a574,#cc785c);color:white;">C</div>
-                        <div class="provider-info">
-                            <div class="provider-name">Claude (Anthropic)</div>
-                            <div class="provider-desc">Smart, great at code</div>
+                    <details id="provider-cards-expand" style="margin-bottom:0.6rem;">
+                        <summary style="display:none;"></summary>
+                        <div class="provider-card selected" onclick="selectProvider('ollama')" id="provider-ollama">
+                            <div class="provider-icon" style="background:linear-gradient(135deg,#1a1a2e,#16213e);color:#00d4ff;">O</div>
+                            <div class="provider-info">
+                                <div class="provider-name">Ollama — Free, on your computer</div>
+                                <div class="provider-desc">Needs Ollama running locally</div>
+                            </div>
+                            <span class="provider-status checking" id="ollama-status">Checking</span>
                         </div>
-                        <span class="provider-status needs-key" id="claude-status">Needs Key</span>
-                    </div>
 
-                    <div class="provider-card" onclick="selectProvider('gemini')" id="provider-gemini">
-                        <div class="provider-icon" style="background:linear-gradient(135deg,#4285f4,#34a853);color:white;">G</div>
-                        <div class="provider-info">
-                            <div class="provider-name">Gemini (Google)</div>
-                            <div class="provider-desc">Fast, free tier available</div>
+                        <div class="provider-card" onclick="selectProvider('claude')" id="provider-claude">
+                            <div class="provider-icon" style="background:linear-gradient(135deg,#d4a574,#cc785c);color:white;">C</div>
+                            <div class="provider-info">
+                                <div class="provider-name">Claude — Smart at code</div>
+                                <div class="provider-desc">Anthropic · needs a key</div>
+                            </div>
+                            <span class="provider-status needs-key" id="claude-status">Needs Key</span>
                         </div>
-                        <span class="provider-status needs-key" id="gemini-status">Needs Key</span>
-                    </div>
 
-                    <div class="provider-card" onclick="selectProvider('openai')" id="provider-openai">
-                        <div class="provider-icon" style="background:linear-gradient(135deg,#10a37f,#1a7f64);color:white;">AI</div>
-                        <div class="provider-info">
-                            <div class="provider-name">OpenAI (GPT)</div>
-                            <div class="provider-desc">Popular, paid API</div>
+                        <div class="provider-card" onclick="selectProvider('gemini')" id="provider-gemini">
+                            <div class="provider-icon" style="background:linear-gradient(135deg,#4285f4,#34a853);color:white;">G</div>
+                            <div class="provider-info">
+                                <div class="provider-name">Gemini — Free & fast</div>
+                                <div class="provider-desc">Google · free tier available</div>
+                            </div>
+                            <span class="provider-status needs-key" id="gemini-status">Needs Key</span>
                         </div>
-                        <span class="provider-status needs-key" id="openai-status">Needs Key</span>
-                    </div>
 
-                    <div class="key-input-group" id="key-input-area">
-                        <span class="section-label" id="key-label">API Key</span>
-                        <div class="key-input-row">
-                            <input type="password" id="api-key-input" placeholder="Paste your API key here...">
-                            <button class="btn btn-sm btn-orange" onclick="saveApiKey()">Save</button>
+                        <div class="provider-card" onclick="selectProvider('openai')" id="provider-openai">
+                            <div class="provider-icon" style="background:linear-gradient(135deg,#10a37f,#1a7f64);color:white;">AI</div>
+                            <div class="provider-info">
+                                <div class="provider-name">OpenAI — Popular</div>
+                                <div class="provider-desc">Paid · needs a key</div>
+                            </div>
+                            <span class="provider-status needs-key" id="openai-status">Needs Key</span>
                         </div>
-                        <div style="font-size:0.65rem;color:var(--text-dimmer);margin-top:0.3rem;" id="key-help">
-                            Keys are stored locally in your browser. Never shared.
+
+                        <div class="key-input-group" id="key-input-area">
+                            <span class="section-label" id="key-label">Your Key</span>
+                            <div class="key-input-row">
+                                <input type="password" id="api-key-input" placeholder="Paste your key here...">
+                                <button class="btn btn-sm btn-orange" onclick="saveApiKey()">Save</button>
+                            </div>
+                            <div style="font-size:0.7rem;color:var(--text-dim);margin-top:0.4rem;" id="key-help">
+                                Keys stay on your computer. They're never sent anywhere except the AI itself.
+                            </div>
                         </div>
-                    </div>
+                    </details>
                 </div>
 
                 <div class="section" id="ollama-model-section">
@@ -853,70 +991,70 @@
             <!-- TEMPLATES PANEL -->
             <div class="sidebar-panel" id="panel-templates">
                 <div class="section">
-                    <span class="section-label">Quick Start Templates</span>
-                    <p style="font-size:0.75rem;color:var(--text-dimmer);margin-bottom:0.7rem;line-height:1.5;">
-                        Click any template to load it into the editor. Each one is a complete, working project!
+                    <span class="section-label" style="color:#ffffff;font-size:0.82rem;letter-spacing:0.02em;">💡 Starter Projects</span>
+                    <p style="font-size:0.78rem;color:var(--text-dim);margin-bottom:0.85rem;line-height:1.55;">
+                        Tap any project to load it. Each one is complete and ready to run — great for seeing what the code looks like.
                     </p>
                     <div class="template-grid">
                         <button class="template-btn" onclick="loadTemplate('blink')">
                             <div class="t-icon">💡</div>
-                            <div class="t-name">Blink LED</div>
-                            <div class="t-desc">Classic starter project</div>
+                            <div class="t-name">Blinking Light</div>
+                            <div class="t-desc">An LED that turns on and off</div>
                         </button>
                         <button class="template-btn" onclick="loadTemplate('button')">
                             <div class="t-icon">🔘</div>
-                            <div class="t-name">Button Input</div>
-                            <div class="t-desc">Read a button press</div>
+                            <div class="t-name">Button Press</div>
+                            <div class="t-desc">Press a button, LED lights up</div>
                         </button>
                         <button class="template-btn" onclick="loadTemplate('wifi')">
                             <div class="t-icon">📶</div>
-                            <div class="t-name">WiFi Connect</div>
-                            <div class="t-desc">Join a WiFi network</div>
+                            <div class="t-name">Connect to WiFi</div>
+                            <div class="t-desc">Join your home WiFi network</div>
                         </button>
                         <button class="template-btn" onclick="loadTemplate('temperature')">
                             <div class="t-icon">🌡️</div>
                             <div class="t-name">Temperature</div>
-                            <div class="t-desc">Read a temp sensor</div>
+                            <div class="t-desc">Read how warm it is</div>
                         </button>
                         <button class="template-btn" onclick="loadTemplate('servo')">
                             <div class="t-icon">⚙️</div>
-                            <div class="t-name">Servo Motor</div>
-                            <div class="t-desc">Control a servo</div>
+                            <div class="t-name">Little Motor</div>
+                            <div class="t-desc">Move a servo arm back and forth</div>
                         </button>
                         <button class="template-btn" onclick="loadTemplate('webserver')">
-                            <div class="t-icon">🌐</div>
-                            <div class="t-name">Web Server</div>
-                            <div class="t-desc">Control from your phone</div>
+                            <div class="t-icon">📱</div>
+                            <div class="t-name">Phone Control</div>
+                            <div class="t-desc">Turn the LED on from your phone</div>
                         </button>
                         <button class="template-btn" onclick="loadTemplate('oled')">
                             <div class="t-icon">🖥️</div>
-                            <div class="t-name">OLED Display</div>
-                            <div class="t-desc">Show text on screen</div>
+                            <div class="t-name">Little Screen</div>
+                            <div class="t-desc">Show words on a tiny display</div>
                         </button>
                         <button class="template-btn" onclick="loadTemplate('neopixel')">
                             <div class="t-icon">🌈</div>
-                            <div class="t-name">NeoPixels</div>
-                            <div class="t-desc">RGB LED strip effects</div>
+                            <div class="t-name">Rainbow Lights</div>
+                            <div class="t-desc">A strip of color-changing LEDs</div>
                         </button>
                         <button class="template-btn" onclick="loadTemplate('pir')">
                             <div class="t-icon">👁️</div>
-                            <div class="t-name">PIR Motion</div>
-                            <div class="t-desc">Detect movement</div>
+                            <div class="t-name">Motion Detector</div>
+                            <div class="t-desc">Light up when something moves</div>
                         </button>
                         <button class="template-btn" onclick="loadTemplate('ultrasonic')">
                             <div class="t-icon">📏</div>
-                            <div class="t-name">Distance</div>
-                            <div class="t-desc">Ultrasonic range finder</div>
+                            <div class="t-name">Distance Sensor</div>
+                            <div class="t-desc">Measure how far away something is</div>
                         </button>
                         <button class="template-btn" onclick="loadTemplate('ble')">
-                            <div class="t-icon">📱</div>
-                            <div class="t-name">Bluetooth LE</div>
-                            <div class="t-desc">Talk to your phone</div>
+                            <div class="t-icon">📡</div>
+                            <div class="t-name">Bluetooth Chat</div>
+                            <div class="t-desc">Send messages from your phone</div>
                         </button>
                         <button class="template-btn" onclick="loadTemplate('joystick')">
                             <div class="t-icon">🕹️</div>
                             <div class="t-name">Joystick</div>
-                            <div class="t-desc">Analog stick input</div>
+                            <div class="t-desc">Read an analog stick like a game controller</div>
                         </button>
                     </div>
                 </div>
@@ -963,15 +1101,14 @@
                         </div>
                     </div>
 
-                    <div style="display:flex;gap:0.5rem;margin-bottom:0.6rem;">
-                        <button class="btn btn-sm btn-orange" onclick="openCamera()" style="flex:1;">
-                            <i data-lucide="camera" style="width:12px;height:12px;"></i> Camera
-                        </button>
-                        <button class="btn btn-sm" onclick="document.getElementById('snap-file').click()" style="flex:1;">
-                            <i data-lucide="upload" style="width:12px;height:12px;"></i> Upload
-                        </button>
-                        <input type="file" id="snap-file" accept="image/*" capture="environment" style="display:none;" onchange="handlePhotoUpload(event)">
-                    </div>
+                    <button class="hero-snap-btn" onclick="openCamera()" style="margin-bottom:0.55rem;">
+                        <i data-lucide="camera" style="width:22px;height:22px;"></i>
+                        Take a Photo
+                    </button>
+                    <button class="btn" onclick="document.getElementById('snap-file').click()" style="width:100%;justify-content:center;padding:0.7rem;font-size:0.85rem;margin-bottom:0.6rem;color:#ffffff;">
+                        <i data-lucide="upload" style="width:14px;height:14px;"></i> Or pick from your photos
+                    </button>
+                    <input type="file" id="snap-file" accept="image/*" capture="environment" style="display:none;" onchange="handlePhotoUpload(event)">
 
                     <video id="snap-video" autoplay playsinline muted style="display:none;width:100%;max-height:220px;background:#000;border-radius:6px;"></video>
                     <canvas id="snap-canvas" style="display:none;"></canvas>
@@ -1006,59 +1143,77 @@
             <!-- SETTINGS PANEL -->
             <div class="sidebar-panel" id="panel-settings">
                 <div class="section">
-                    <span class="section-label">Editor</span>
-                    <div class="setting-row">
-                        <div>
-                            <div class="setting-label">Font Size</div>
-                            <div class="setting-desc">Code editor text size</div>
-                        </div>
-                        <input type="number" id="setting-fontsize" value="14" min="10" max="28" style="width:70px;" onchange="applySetting('fontSize', this.value)">
-                    </div>
-                    <div class="setting-row">
-                        <div>
-                            <div class="setting-label">Word Wrap</div>
-                            <div class="setting-desc">Wrap long lines</div>
-                        </div>
-                        <div class="toggle-switch on" id="toggle-wordwrap" onclick="toggleSetting('wordWrap')"></div>
-                    </div>
-                    <div class="setting-row">
-                        <div>
-                            <div class="setting-label">Minimap</div>
-                            <div class="setting-desc">Code overview sidebar</div>
-                        </div>
-                        <div class="toggle-switch" id="toggle-minimap" onclick="toggleSetting('minimap')"></div>
-                    </div>
+                    <span class="section-label" style="color:#ffffff;font-size:0.9rem;letter-spacing:0.02em;">⚙ Options</span>
+                    <p style="font-size:0.78rem;color:var(--text-dim);margin-bottom:0.9rem;line-height:1.55;">
+                        The only thing most people need: a free Gemini key. Everything else is optional.
+                    </p>
                 </div>
 
                 <div class="section">
-                    <span class="section-label">Ollama</span>
-                    <div class="setting-row">
-                        <div>
-                            <div class="setting-label">Server URL</div>
-                            <div class="setting-desc">Where Ollama is running</div>
-                        </div>
-                        <input type="url" id="setting-ollama-url" value="http://localhost:11434" style="width:180px;font-size:0.75rem;" onchange="saveSettings()">
-                    </div>
-                </div>
-
-                <div class="section">
-                    <span class="section-label">API Keys</span>
-                    <p style="font-size:0.7rem;color:var(--text-dimmer);margin-bottom:0.5rem;line-height:1.4;">
-                        Keys are saved in your browser's local storage. They never leave your computer.
+                    <span class="section-label" style="color:#ffffff;font-size:0.82rem;">🔑 Gemini Key (recommended)</span>
+                    <p style="font-size:0.72rem;color:var(--text-dim);margin-bottom:0.5rem;line-height:1.5;">
+                        Gemini is Google's AI. It's free, and it's what powers the Photo tab. Grab a key at <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--orange);text-decoration:none;">aistudio.google.com/apikey</a> (takes 30 seconds, no credit card).
                     </p>
                     <div class="setting-row">
-                        <div class="setting-label">Claude</div>
-                        <input type="password" id="setting-key-claude" placeholder="sk-ant-..." style="width:180px;font-size:0.75rem;" onchange="saveSettings()">
-                    </div>
-                    <div class="setting-row">
-                        <div class="setting-label">Gemini</div>
+                        <div class="setting-label" style="color:#ffffff;">Key</div>
                         <input type="password" id="setting-key-gemini" placeholder="AIza..." style="width:180px;font-size:0.75rem;" onchange="saveSettings()">
                     </div>
-                    <div class="setting-row">
-                        <div class="setting-label">OpenAI</div>
-                        <input type="password" id="setting-key-openai" placeholder="sk-..." style="width:180px;font-size:0.75rem;" onchange="saveSettings()">
-                    </div>
                 </div>
+
+                <details style="margin:0.5rem 0 1rem;">
+                    <summary style="cursor:pointer;color:var(--text-dim);font-size:0.78rem;user-select:none;padding:0.5rem 0;">More options (advanced)</summary>
+
+                    <div class="section" style="margin-top:0.3rem;">
+                        <span class="section-label">Editor</span>
+                        <div class="setting-row">
+                            <div>
+                                <div class="setting-label">Text size</div>
+                                <div class="setting-desc">How big the code looks</div>
+                            </div>
+                            <input type="number" id="setting-fontsize" value="14" min="10" max="28" style="width:70px;" onchange="applySetting('fontSize', this.value)">
+                        </div>
+                        <div class="setting-row">
+                            <div>
+                                <div class="setting-label">Wrap long lines</div>
+                                <div class="setting-desc">Break long code onto two lines</div>
+                            </div>
+                            <div class="toggle-switch on" id="toggle-wordwrap" onclick="toggleSetting('wordWrap')"></div>
+                        </div>
+                        <div class="setting-row">
+                            <div>
+                                <div class="setting-label">Code overview</div>
+                                <div class="setting-desc">Mini scroll preview on the right</div>
+                            </div>
+                            <div class="toggle-switch" id="toggle-minimap" onclick="toggleSetting('minimap')"></div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <span class="section-label">Other AI keys</span>
+                        <p style="font-size:0.7rem;color:var(--text-dim);margin-bottom:0.5rem;line-height:1.45;">
+                            Only needed if you want to use Claude or OpenAI instead of Gemini.
+                        </p>
+                        <div class="setting-row">
+                            <div class="setting-label">Claude</div>
+                            <input type="password" id="setting-key-claude" placeholder="sk-ant-..." style="width:180px;font-size:0.75rem;" onchange="saveSettings()">
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-label">OpenAI</div>
+                            <input type="password" id="setting-key-openai" placeholder="sk-..." style="width:180px;font-size:0.75rem;" onchange="saveSettings()">
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <span class="section-label">Ollama (runs on your computer)</span>
+                        <div class="setting-row">
+                            <div>
+                                <div class="setting-label">Server address</div>
+                                <div class="setting-desc">Change only if Ollama runs elsewhere</div>
+                            </div>
+                            <input type="url" id="setting-ollama-url" value="http://localhost:11434" style="width:180px;font-size:0.75rem;" onchange="saveSettings()">
+                        </div>
+                    </div>
+                </details>
 
                 <div class="section">
                     <span class="section-label">Workspace</span>
@@ -1134,6 +1289,40 @@
         <div class="serial-input-row">
             <input type="text" id="serial-input" placeholder="Type a message to send back to the board..." onkeydown="if(event.key==='Enter')sendSerial()">
             <button onclick="sendSerial()">Send</button>
+        </div>
+    </div>
+
+    <!-- WELCOME MODAL (first-visit only) -->
+    <div class="welcome-modal-overlay" id="welcome-modal">
+        <div class="welcome-modal">
+            <h1>👋 Welcome to Coding with Grandma</h1>
+            <div class="w-sub">
+                We turn an ESP32 microcontroller into an AI-powered playground. Three ways to get started — pick whichever feels fun:
+            </div>
+            <div class="welcome-steps">
+                <div class="welcome-step">
+                    <div class="w-num">1</div>
+                    <div>
+                        <div class="w-title">📸 Snap a photo</div>
+                        <div class="w-body">Take a picture of your breadboard. The AI figures out what's connected and writes the code for you.</div>
+                    </div>
+                </div>
+                <div class="welcome-step">
+                    <div class="w-num">2</div>
+                    <div>
+                        <div class="w-title">✨ Describe what you want</div>
+                        <div class="w-body">Type it in plain English — "blink an LED when I press a button" — and the AI writes the code.</div>
+                    </div>
+                </div>
+                <div class="welcome-step">
+                    <div class="w-num">3</div>
+                    <div>
+                        <div class="w-title">💡 Pick a starter project</div>
+                        <div class="w-body">Twelve ready-made examples — Blinking Light, Rainbow LEDs, Motion Detector, and more.</div>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-welcome" onclick="closeWelcomeModal()">Let's go →</button>
         </div>
     </div>
 
@@ -1526,6 +1715,27 @@
         }
 
         // ================================================================
+        // WELCOME MODAL — shown once on first visit
+        // ================================================================
+        function closeWelcomeModal() {
+            var m = document.getElementById('welcome-modal');
+            if (m) m.classList.remove('visible');
+            try { localStorage.setItem('cwg-seen-welcome', '1'); } catch (e) {}
+        }
+        (function maybeShowWelcome() {
+            try {
+                if (localStorage.getItem('cwg-seen-welcome') === '1') return;
+            } catch (e) {}
+            // Show after a small delay so the editor initializes first
+            window.addEventListener('load', function () {
+                setTimeout(function () {
+                    var m = document.getElementById('welcome-modal');
+                    if (m) m.classList.add('visible');
+                }, 350);
+            });
+        })();
+
+        // ================================================================
         // SNAP & CODE — camera → Gemini or Ollama Vision → code
         // ================================================================
         var snapStream = null;
@@ -1888,12 +2098,21 @@
                 renderLineHighlight: 'all'
             });
 
-            // Autosave on change — debounced
+            // Autosave on change — debounced, with a subtle "Saved" pulse
             editor.onDidChangeModelContent(function () {
                 if (!settings.autosave) return;
                 if (autosaveTimer) clearTimeout(autosaveTimer);
                 autosaveTimer = setTimeout(function () {
-                    try { localStorage.setItem('cwg-autosave', editor.getValue()); } catch (e) {}
+                    try {
+                        localStorage.setItem('cwg-autosave', editor.getValue());
+                        var ind = document.getElementById('save-indicator');
+                        if (ind) {
+                            ind.classList.remove('pulse');
+                            // force reflow so the animation restarts even on rapid edits
+                            void ind.offsetWidth;
+                            ind.classList.add('pulse');
+                        }
+                    } catch (e) {}
                 }, 400);
             });
 
@@ -1915,17 +2134,25 @@
             if (!editor) return;
             var code = editor.getValue();
             var issues = [];
-            if (!code.includes('void setup()') && !code.includes('void setup ()')) issues.push('Missing setup() function.');
-            if (!code.includes('void loop()') && !code.includes('void loop ()')) issues.push('Missing loop() function.');
-            if (!code.includes('Serial.begin') && code.includes('Serial.print')) issues.push('Using Serial.print without Serial.begin().');
-            if (code.includes('delay(-') || code.match(/delay\(\s*0\s*\)/)) issues.push('Suspicious delay value.');
+            if (!code.includes('void setup()') && !code.includes('void setup ()')) {
+                issues.push('Your code is missing a "setup()" section. That\'s the one-time stuff the board does when it starts. Add: void setup() { ... }');
+            }
+            if (!code.includes('void loop()') && !code.includes('void loop ()')) {
+                issues.push('Your code is missing a "loop()" section. That\'s the stuff the board does over and over. Add: void loop() { ... }');
+            }
+            if (!code.includes('Serial.begin') && code.includes('Serial.print')) {
+                issues.push('You\'re telling the board to talk (Serial.print) but you haven\'t opened the connection. Add this line at the top of setup: Serial.begin(115200);');
+            }
+            if (code.includes('delay(-') || code.match(/delay\(\s*0\s*\)/)) {
+                issues.push('One of your delay() values looks odd (negative or zero). Try a number like 1000 (= 1 second).');
+            }
 
             if (issues.length === 0) {
-                serialLog('Code looks good! No obvious issues found.', 'sys');
-                serialLog('Full compilation requires uploading to your board.', 'sys');
+                serialLog('✓ Looks good! Your code has all the basics — nothing obviously wrong.', 'sys');
+                serialLog('  (The board makes the final decision when you send it.)', 'sys');
             } else {
-                serialLog('Found ' + issues.length + ' issue(s):', 'warn');
-                issues.forEach(function(i) { serialLog('  - ' + i, 'warn'); });
+                serialLog('Found ' + issues.length + ' thing' + (issues.length === 1 ? '' : 's') + ' to fix:', 'warn');
+                issues.forEach(function(i, idx) { serialLog('  ' + (idx+1) + '. ' + i, 'warn'); });
             }
         }
 
