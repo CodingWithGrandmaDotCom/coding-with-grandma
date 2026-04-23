@@ -71,6 +71,38 @@ Remaining for Phase 1:
 
 ---
 
+## Phase 1.25 — MicroPython as Default ("no compile" mode)
+
+**Status: Approved direction — 2026-04-23. Infrastructure shipped, spike pending.**
+
+Strategic pivot: the #1 friction point for beginners is "compile, wait, flash, debug, wait again." MicroPython eliminates this entirely. Users flash the MicroPython interpreter to their ESP32 once (USB, 30 sec), and from then on code runs instantly as Python text sent over Serial / Bluetooth LE.
+
+**Why this matters:**
+- Python is a genuinely better teaching language than Arduino C++ — plain-English errors, readable syntax
+- No compile wait — iterate in seconds, not minutes
+- Instant REPL feedback — type `led.value(1)` and watch it work
+- Makes the iPhone app dramatically simpler: send Python text over BLE = done (no in-browser compiler needed)
+- MicroPython on ESP32 is an existing, stable, maintained project — not speculative tech
+
+**Shipped (v0.5 prep):**
+- Language toggle in the IDE top bar: Python (default, sunset-gradient when active) vs. Arduino C++
+- AI system prompts rewritten to generate heavily-commented MicroPython by default (with a "TEACH while you code" baked in)
+- 6 heavily-commented Python starter templates: Blink, Button, WiFi, NeoPixel, Temperature, Web Server
+- Monaco editor switches language live on toggle; preference persisted
+- Welcome modal rewritten around Python-first with QR-onboarding preview
+
+**Remaining:**
+- Remaining 6 Python templates (PIR, Ultrasonic, BLE, Joystick, Servo, OLED)
+- Hardware spike: actually flash MicroPython to a real ESP32 and send `led.value(1)` over serial
+- First-time setup wizard: guided MicroPython firmware flash via web (USB from desktop)
+- Over-the-air Python text delivery over BLE (the iPhone app path — Phase 1.5)
+- GitHub Actions cloud compile for the Arduino C++ side (Phase 1.5b)
+
+**Deferred (no longer critical):**
+- WASM cross-compiler for in-browser C++ compilation → Phase 2.5 moonshot (still interesting as a headline feature, but not blocking anything now)
+
+---
+
 ## Phase 1.5 — iPhone App ($0.99 one-time)
 
 **Status: In progress (scaffold branch `ios-app`)**
