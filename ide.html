@@ -86,6 +86,36 @@
             100% { opacity: 0; transform: translateX(0) scale(1); }
         }
 
+        /* ===== LANGUAGE SWITCH ===== */
+        .lang-switch {
+            display: inline-flex;
+            gap: 0;
+            margin-left: 0.55rem;
+            padding: 3px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+        .lang-opt {
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            padding: 0.28rem 0.7rem;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: background 0.18s ease, color 0.18s ease;
+        }
+        .lang-opt:hover { color: #ffffff; }
+        .lang-opt.active {
+            background: linear-gradient(135deg, var(--orange), var(--coral));
+            color: #ffffff;
+            box-shadow: 0 0 10px -2px rgba(255, 140, 66, 0.45);
+        }
+
         /* ===== SAVE INDICATOR ===== */
         .save-indicator {
             display: inline-flex;
@@ -834,6 +864,10 @@
                 <span class="save-dot"></span>
                 <span class="save-text">Saved</span>
             </div>
+            <div class="lang-switch" role="tablist" aria-label="Coding language">
+                <button class="lang-opt active" id="lang-python" role="tab" aria-selected="true" onclick="setLanguage('python')" title="MicroPython — runs instantly on the ESP32, no compiling. Recommended for beginners.">Python</button>
+                <button class="lang-opt" id="lang-cpp" role="tab" aria-selected="false" onclick="setLanguage('cpp')" title="Arduino C++ — classic. Needs a compile step before running.">Arduino C++</button>
+            </div>
         </div>
         <div class="topbar-actions">
             <!-- Open + Download hidden by default — Ctrl+O / Ctrl+S keyboard shortcuts still work for power users -->
@@ -1288,28 +1322,28 @@
         <div class="welcome-modal">
             <h1>👋 Welcome to Coding with Grandma</h1>
             <div class="w-sub">
-                We turn an ESP32 microcontroller into an AI-powered playground. Three ways to get started — pick whichever feels fun:
+                Turn an ESP32 microcontroller into an AI-powered playground. You write in <strong style="color:var(--orange);">Python</strong> (runs instantly — no waiting for code to compile). Arduino C++ is also available if you prefer.
             </div>
             <div class="welcome-steps">
                 <div class="welcome-step">
                     <div class="w-num">1</div>
                     <div>
-                        <div class="w-title">📸 Snap a photo</div>
-                        <div class="w-body">Take a picture of your breadboard. The AI figures out what's connected and writes the code for you.</div>
+                        <div class="w-title">📸 Snap a photo of your board</div>
+                        <div class="w-body">AI figures out which ESP32 you have and what's plugged in. It'll scan a QR code on the package if it's on there. Or just tell us.</div>
                     </div>
                 </div>
                 <div class="welcome-step">
                     <div class="w-num">2</div>
                     <div>
-                        <div class="w-title">✨ Describe what you want</div>
-                        <div class="w-body">Type it in plain English — "blink an LED when I press a button" — and the AI writes the code.</div>
+                        <div class="w-title">✨ Describe what you want to build</div>
+                        <div class="w-body">Plain English — "blink an LED when I press a button" — and the AI writes commented Python code you can read and learn from.</div>
                     </div>
                 </div>
                 <div class="welcome-step">
                     <div class="w-num">3</div>
                     <div>
-                        <div class="w-title">💡 Pick a starter project</div>
-                        <div class="w-body">Twelve ready-made examples — Blinking Light, Rainbow LEDs, Motion Detector, and more.</div>
+                        <div class="w-title">⚡ Run it instantly</div>
+                        <div class="w-body">Python runs live on your ESP32 — change a number, re-send, see it happen. No compile wait. Arduino C++ is one click away if you want it.</div>
                     </div>
                 </div>
             </div>
@@ -1563,21 +1597,48 @@
         // ================================================================
         // AI GENERATION
         // ================================================================
+        // Language mode: 'python' (MicroPython — default, runs instantly on ESP32) or 'cpp' (Arduino C++)
+        function currentLanguage() {
+            var saved = (settings && settings.language) ? settings.language : null;
+            return (saved === 'cpp' || saved === 'python') ? saved : 'python';
+        }
+
         function buildSystemPrompt() {
-            return 'You are an expert ESP32 Arduino programmer helping a beginner. Generate complete, working Arduino code. ' +
-                'Always include all #include statements. Define pin numbers as named constants. ' +
-                'Add clear, beginner-friendly comments explaining what each section does. ' +
-                'The code must compile and run on an ESP32. Return ONLY the code, no explanations.';
+            var lang = currentLanguage();
+            var teachingClause =
+                'TEACH while you code: every line or small block must have a plain-English comment ' +
+                'that explains WHY it is there, not just what it does. Write as if explaining to a ' +
+                'curious 12-year-old — analogies are welcome. Prefer tiny, readable snippets over ' +
+                'clever one-liners. ';
+
+            if (lang === 'cpp') {
+                return 'You are an expert ESP32 Arduino-C++ programmer teaching a complete beginner. ' +
+                    'Generate complete, working Arduino C++ code that compiles and runs on an ESP32. ' +
+                    teachingClause +
+                    'Always include all #include statements. Define pin numbers as named constants at the top. ' +
+                    'Use beginner-friendly patterns (no advanced C++ features unless necessary). ' +
+                    'Return ONLY the code in a single file. No preamble, no epilogue, no markdown fences.';
+            }
+            // Default: MicroPython
+            return 'You are an expert ESP32 MicroPython programmer teaching a complete beginner. ' +
+                'Generate complete, working MicroPython code that runs on an ESP32 flashed with ' +
+                'MicroPython firmware. Use standard MicroPython modules: `machine` (Pin, ADC, PWM, I2C, SPI), ' +
+                '`neopixel`, `network`, `bluetooth`, `time`, `urequests`, etc. as appropriate. ' +
+                teachingClause +
+                'Define pin numbers as named constants at the top. Use `time.sleep_ms()` instead of `delay()`. ' +
+                'Return ONLY the Python code — no preamble, no epilogue, no markdown fences. The comments live inline.';
         }
 
         function buildUserPrompt() {
             var desc = document.getElementById('ai-prompt').value.trim();
             var board = document.getElementById('ai-board').value;
             var components = document.getElementById('ai-components').value.trim();
-            var prompt = 'Write complete Arduino code for an ' + board + ':\n\n' + desc + '\n\n';
-            prompt += 'Board: ' + board + '\nFramework: Arduino\n';
+            var lang = currentLanguage();
+            var langLabel = (lang === 'cpp') ? 'Arduino C++' : 'MicroPython';
+            var prompt = 'Write complete ' + langLabel + ' code for an ' + board + ':\n\n' + desc + '\n\n';
+            prompt += 'Board: ' + board + '\nLanguage: ' + langLabel + '\n';
             if (components) prompt += 'Components: ' + components + '\n';
-            prompt += '\nProvide complete, compilable code in a single file.';
+            prompt += '\nRemember: every line or small block needs a teaching comment. The user is a beginner — explain WHY.';
             return prompt;
         }
 
@@ -1704,6 +1765,55 @@
         function insertGeneratedCode() {
             if (lastGeneratedCode && editor) { editor.setValue(lastGeneratedCode); serialLog('AI code inserted into editor.', 'sys'); }
         }
+
+        // ================================================================
+        // LANGUAGE SWITCH — Python (MicroPython) vs Arduino C++
+        // ================================================================
+        function setLanguage(lang) {
+            if (lang !== 'python' && lang !== 'cpp') lang = 'python';
+            settings.language = lang;
+            try { localStorage.setItem('cwg-settings', JSON.stringify(settings)); } catch (e) {}
+
+            // Update pill UI
+            var pyBtn = document.getElementById('lang-python');
+            var cppBtn = document.getElementById('lang-cpp');
+            if (pyBtn && cppBtn) {
+                pyBtn.classList.toggle('active', lang === 'python');
+                pyBtn.setAttribute('aria-selected', lang === 'python');
+                cppBtn.classList.toggle('active', lang === 'cpp');
+                cppBtn.setAttribute('aria-selected', lang === 'cpp');
+            }
+
+            // Switch Monaco editor language highlighting
+            try {
+                if (editor && editor.getModel && monaco && monaco.editor) {
+                    var model = editor.getModel();
+                    if (model) monaco.editor.setModelLanguage(model, lang === 'python' ? 'python' : 'cpp');
+                }
+            } catch (e) {}
+
+            serialLog(lang === 'python'
+                ? 'Switched to MicroPython — tiny, readable, runs instantly on the ESP32. No compile step.'
+                : 'Switched to Arduino C++ — classic. Needs a compile step before sending to the board.', 'sys');
+        }
+
+        // Restore language on load
+        (function initLanguage() {
+            var lang = currentLanguage();
+            if (lang !== 'python') {
+                // Defer until after editor exists; the initializer below also handles this
+                document.addEventListener('DOMContentLoaded', function () {
+                    var pyBtn = document.getElementById('lang-python');
+                    var cppBtn = document.getElementById('lang-cpp');
+                    if (pyBtn && cppBtn) {
+                        pyBtn.classList.remove('active');
+                        pyBtn.setAttribute('aria-selected', 'false');
+                        cppBtn.classList.add('active');
+                        cppBtn.setAttribute('aria-selected', 'true');
+                    }
+                });
+            }
+        })();
 
         // ================================================================
         // WELCOME MODAL — shown once on first visit
@@ -1990,8 +2100,224 @@
             joystick: '/*\n * Analog Joystick — Coding with Grandma Starter Template\n *\n * What it does: Reads X/Y analog values plus the push-button, prints direction.\n * Wiring: VRx -> GPIO 34, VRy -> GPIO 35, SW -> GPIO 32, VCC -> 3.3V, GND -> GND.\n */\n\nconst int X_PIN = 34;\nconst int Y_PIN = 35;\nconst int SW_PIN = 32;\nconst int CENTER = 2048;\nconst int DEADZONE = 400;\n\nvoid setup() {\n    Serial.begin(115200);\n    Serial.println("Joystick starting!");\n    pinMode(SW_PIN, INPUT_PULLUP);\n}\n\nvoid loop() {\n    int x = analogRead(X_PIN);\n    int y = analogRead(Y_PIN);\n    int btn = digitalRead(SW_PIN);\n\n    String dir = "";\n    if (y < CENTER - DEADZONE) dir += "UP ";\n    if (y > CENTER + DEADZONE) dir += "DOWN ";\n    if (x < CENTER - DEADZONE) dir += "LEFT ";\n    if (x > CENTER + DEADZONE) dir += "RIGHT ";\n    if (dir == "") dir = "center";\n\n    Serial.print("X=");\n    Serial.print(x);\n    Serial.print(" Y=");\n    Serial.print(y);\n    Serial.print(" ");\n    Serial.print(dir);\n    if (btn == LOW) Serial.print(" [CLICK]");\n    Serial.println();\n    delay(150);\n}'
         };
 
+        // ================================================================
+        // PYTHON (MicroPython) STARTER TEMPLATES
+        // Every line is commented for beginner learning.
+        // ================================================================
+        var pythonTemplates = {
+            blink: [
+                '# Blinking Light — Coding with Grandma (MicroPython)',
+                '#',
+                '# What it does: turns the onboard LED on and off, once a second, forever.',
+                '# Wiring:       no extra wiring needed — uses the LED built into the board.',
+                '',
+                'from machine import Pin   # "machine" is MicroPython\'s hardware library. Pin lets us control one of the board\'s little pins.',
+                'import time              # "time" lets us wait between actions (so we can see the blink).',
+                '',
+                'LED_PIN = 2              # Pin 2 on most ESP32 boards is wired to the built-in LED.',
+                'led = Pin(LED_PIN, Pin.OUT)   # Set up pin 2 as an OUTPUT — we\'re sending power OUT of it to the LED.',
+                '',
+                'while True:              # "while True" means do this forever (until you unplug it).',
+                '    led.value(1)         # 1 = ON. Voltage goes high, LED lights up.',
+                '    print("LED on")      # Send a message back to the computer so you can see what\'s happening.',
+                '    time.sleep_ms(1000)  # Wait 1000 milliseconds = 1 second.',
+                '    led.value(0)         # 0 = OFF. Voltage drops, LED goes dark.',
+                '    print("LED off")',
+                '    time.sleep_ms(1000)'
+            ].join('\n'),
+
+            button: [
+                '# Button Press — Coding with Grandma (MicroPython)',
+                '#',
+                '# What it does: watches a button. When you press it, the LED turns on. Release it, LED turns off.',
+                '# Wiring:       push-button between Pin 4 and GND (ground). LED already built into Pin 2.',
+                '',
+                'from machine import Pin',
+                'import time',
+                '',
+                'BUTTON_PIN = 4           # The pin our button is connected to.',
+                'LED_PIN = 2              # Built-in LED pin.',
+                '',
+                '# PULL_UP means: when nothing is pressing the button, the pin reads "1" (HIGH).',
+                '# When you press the button, it connects the pin to ground, so the pin reads "0" (LOW).',
+                'button = Pin(BUTTON_PIN, Pin.IN, Pin.PULL_UP)',
+                'led = Pin(LED_PIN, Pin.OUT)',
+                '',
+                'print("Press the button and the LED will light up!")',
+                '',
+                'while True:',
+                '    if button.value() == 0:   # 0 means the button IS pressed.',
+                '        led.value(1)          # Turn the LED on.',
+                '    else:',
+                '        led.value(0)          # Button released — turn LED off.',
+                '    time.sleep_ms(50)         # Small pause so we don\'t check too fast (saves power and avoids "bouncing").'
+            ].join('\n'),
+
+            wifi: [
+                '# Connect to WiFi — Coding with Grandma (MicroPython)',
+                '#',
+                '# What it does: joins your home WiFi network so the ESP32 can talk to the internet.',
+                '# Change WIFI_NAME and WIFI_PASSWORD below to match your home network.',
+                '',
+                'import network         # "network" is the WiFi library.',
+                'import time',
+                '',
+                'WIFI_NAME = "YourWiFiName"         # ← change this!',
+                'WIFI_PASSWORD = "YourWiFiPassword" # ← and this!',
+                '',
+                '# "STA_IF" means "station mode" — we\'re joining an existing network (like your phone does).',
+                'wlan = network.WLAN(network.STA_IF)',
+                'wlan.active(True)                  # Turn the WiFi radio on.',
+                '',
+                'print("Connecting to", WIFI_NAME, "...")',
+                'wlan.connect(WIFI_NAME, WIFI_PASSWORD)',
+                '',
+                '# Wait until we\'re connected (or give up after 15 seconds).',
+                'tries = 0',
+                'while not wlan.isconnected() and tries < 15:',
+                '    print(".", end="")',
+                '    time.sleep(1)',
+                '    tries += 1',
+                '',
+                'if wlan.isconnected():',
+                '    print("\\nConnected! Your ESP32 is on the internet.")',
+                '    print("Its address is:", wlan.ifconfig()[0])   # This is like the ESP32\'s phone number on your network.',
+                'else:',
+                '    print("\\nCouldn\'t connect. Double-check your WiFi name and password.")'
+            ].join('\n'),
+
+            neopixel: [
+                '# Rainbow Lights — Coding with Grandma (MicroPython)',
+                '#',
+                '# What it does: cycles a strip of NeoPixel (WS2812) LEDs through every color of the rainbow.',
+                '# Wiring:       NeoPixel "Data In" → Pin 5, 5V → VIN, GND → GND.',
+                '',
+                'from machine import Pin',
+                'import neopixel      # Built-in MicroPython library for NeoPixel LED strips.',
+                'import time',
+                '',
+                'PIXEL_PIN = 5        # The pin your NeoPixel data line is connected to.',
+                'NUM_PIXELS = 8       # How many LEDs are on your strip. Change this to match yours!',
+                '',
+                '# Create a "strip" object we can talk to.',
+                'strip = neopixel.NeoPixel(Pin(PIXEL_PIN), NUM_PIXELS)',
+                '',
+                '# Helper: turn a hue (0–255) into a red/green/blue color tuple.',
+                'def wheel(pos):',
+                '    # The wheel loops through rainbow colors as "pos" moves from 0 to 255.',
+                '    if pos < 85:',
+                '        return (pos * 3, 255 - pos * 3, 0)',
+                '    elif pos < 170:',
+                '        pos -= 85',
+                '        return (255 - pos * 3, 0, pos * 3)',
+                '    else:',
+                '        pos -= 170',
+                '        return (0, pos * 3, 255 - pos * 3)',
+                '',
+                'print("Starting the rainbow! Press Ctrl-C in the console to stop.")',
+                '',
+                'offset = 0',
+                'while True:',
+                '    # Color every pixel on the strip slightly differently so it looks like a moving rainbow.',
+                '    for i in range(NUM_PIXELS):',
+                '        strip[i] = wheel((i * 32 + offset) & 255)',
+                '    strip.write()             # Actually send the colors out to the LEDs.',
+                '    offset = (offset + 3) & 255  # Shift the rainbow a little for the next frame.',
+                '    time.sleep_ms(30)          # 30ms between frames = about 33 frames per second.'
+            ].join('\n'),
+
+            temperature: [
+                '# Temperature — Coding with Grandma (MicroPython)',
+                '#',
+                '# What it does: reads the ESP32\'s built-in internal temperature sensor and prints it once a second.',
+                '# No extra wiring needed — the sensor is already inside the chip!',
+                '',
+                'import esp32        # ESP32-specific helpers live in this module.',
+                'import time',
+                '',
+                'print("Reading the internal temperature sensor...")',
+                'print("Note: this is the temperature of the CHIP, not the room. It runs a bit warm.")',
+                '',
+                'while True:',
+                '    # mcu_temperature() returns Celsius. Multiply by 9/5 and add 32 to get Fahrenheit.',
+                '    c = esp32.mcu_temperature()',
+                '    f = c * 9 / 5 + 32',
+                '    print("Chip temp:", c, "°C  /  ", f, "°F")',
+                '    time.sleep(1)     # Wait 1 second between readings.'
+            ].join('\n'),
+
+            webserver: [
+                '# Phone Control — Coding with Grandma (MicroPython)',
+                '#',
+                '# What it does: creates a tiny web page on your ESP32 so you can turn the LED on/off from your phone.',
+                '# Needs: WiFi connection (change WIFI_NAME and WIFI_PASSWORD below).',
+                '',
+                'import network',
+                'import socket',
+                'from machine import Pin',
+                'import time',
+                '',
+                'WIFI_NAME = "YourWiFiName"         # ← change this!',
+                'WIFI_PASSWORD = "YourWiFiPassword" # ← and this!',
+                'LED_PIN = 2',
+                '',
+                'led = Pin(LED_PIN, Pin.OUT)',
+                '',
+                '# Connect to WiFi.',
+                'wlan = network.WLAN(network.STA_IF)',
+                'wlan.active(True)',
+                'wlan.connect(WIFI_NAME, WIFI_PASSWORD)',
+                'print("Connecting...")',
+                'while not wlan.isconnected():',
+                '    time.sleep(1)',
+                'print("Ready! Open this address on your phone:")',
+                'print("http://" + wlan.ifconfig()[0])',
+                '',
+                '# Build a tiny HTML page to serve.',
+                'def page_html(state):',
+                '    return """<!DOCTYPE html><html><head>',
+                '<meta name=viewport content=\\"width=device-width,initial-scale=1\\">',
+                '<title>ESP32 LED</title>',
+                '<style>body{font-family:sans-serif;text-align:center;background:#0b1628;color:#fff;padding:3em;}',
+                'a{display:inline-block;padding:1em 2em;margin:0.5em;border-radius:10px;text-decoration:none;font-weight:bold;font-size:1.3em;color:#fff;}',
+                '.on{background:#22c55e;} .off{background:#ef4444;}</style></head>',
+                '<body><h1>ESP32 LED Control</h1>',
+                '<p>LED is currently: <b>""" + state + """</b></p>',
+                '<a href=\\"/on\\" class=on>Turn ON</a><a href=\\"/off\\" class=off>Turn OFF</a>',
+                '</body></html>"""',
+                '',
+                '# Open a little server on port 80 (the normal web port).',
+                's = socket.socket(socket.AF_INET, socket.SOCK_STREAM)',
+                's.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)',
+                's.bind(("", 80))',
+                's.listen(1)',
+                '',
+                'while True:',
+                '    # Wait for someone to open the web page.',
+                '    conn, addr = s.accept()',
+                '    req = conn.recv(1024).decode()',
+                '    # Figure out which button they clicked based on the URL they asked for.',
+                '    if "GET /on"  in req: led.value(1)',
+                '    if "GET /off" in req: led.value(0)',
+                '    state = "ON" if led.value() else "OFF"',
+                '    # Send the web page back.',
+                '    conn.send("HTTP/1.0 200 OK\\r\\nContent-Type: text/html\\r\\n\\r\\n" + page_html(state))',
+                '    conn.close()'
+            ].join('\n')
+        };
+
         function loadTemplate(name) {
-            if (editor && templates[name]) { editor.setValue(templates[name]); serialLog('Loaded template: ' + name, 'sys'); }
+            if (!editor) return;
+            var lang = currentLanguage();
+            var tpl = (lang === 'python' && pythonTemplates[name]) ? pythonTemplates[name] : templates[name];
+            if (tpl) {
+                editor.setValue(tpl);
+                serialLog('Loaded ' + (lang === 'python' ? 'Python' : 'Arduino') + ' template: ' + name, 'sys');
+            } else if (lang === 'python') {
+                // No Python version yet — fall back with a friendly note.
+                editor.setValue(templates[name] || '# This template isn\'t translated to Python yet. Use the Build tab to generate a MicroPython version.');
+                serialLog('No Python version of "' + name + '" yet. Falling back to Arduino — or use Build to generate Python.', 'warn');
+            }
         }
 
         // ================================================================
@@ -2029,27 +2355,54 @@
             // Load autosaved sketch if present, otherwise show a friendly welcome
             var savedDraft = null;
             try { savedDraft = localStorage.getItem('cwg-autosave'); } catch (e) {}
-            var welcomeCode = [
+            var welcomeCodePython = [
+                '# 👋 Welcome to Coding with Grandma!',
+                '#',
+                '# Three ways to get started:',
+                '#',
+                '#   📸 Photo tab   — Snap a picture of your breadboard and the AI',
+                '#                    writes Python code for whatever it sees.',
+                '#',
+                '#   ✨ Build tab   — Describe what you want to build in plain English.',
+                '#                    The AI writes commented code so you learn as you go.',
+                '#',
+                '#   💡 Examples    — Pick a ready-made starter project.',
+                '#',
+                '# Your work saves automatically — don\'t worry about losing anything.',
+                '#',
+                '# You\'re writing in MicroPython. It runs INSTANTLY on your ESP32',
+                '# — no waiting for code to compile. (Prefer Arduino C++? Use the',
+                '# switch in the top bar.)',
+                '#',
+                '# This sample blinks the built-in LED. Try sending it to your board.',
+                '',
+                'from machine import Pin   # "machine" is MicroPython\'s hardware library.',
+                'import time              # "time" lets us wait between actions.',
+                '',
+                'LED_PIN = 2              # Pin 2 is wired to the built-in LED on most ESP32 boards.',
+                'led = Pin(LED_PIN, Pin.OUT)',
+                '',
+                'print("Hello from your ESP32!")',
+                '',
+                'while True:',
+                '    led.value(1)          # Turn the LED on.',
+                '    print("LED on")',
+                '    time.sleep_ms(1000)   # Wait 1 second.',
+                '    led.value(0)          # Turn the LED off.',
+                '    print("LED off")',
+                '    time.sleep_ms(1000)',
+                ''
+            ].join('\n');
+
+            var welcomeCodeCpp = [
                 '/*',
                 ' * 👋 Welcome to Coding with Grandma!',
                 ' *',
-                ' * Here are three ways to get started:',
+                ' * You\'re writing in Arduino C++. This needs a compile step before',
+                ' * running. Want something faster? Switch to MicroPython in the top bar —',
+                ' * it runs instantly with no compile wait.',
                 ' *',
-                ' *   📸 Photo tab   — Snap a picture of your breadboard and the AI',
-                ' *                    writes code for whatever it sees.',
-                ' *',
-                ' *   ✨ Build tab   — Describe what you want to build in plain English.',
-                ' *                    The AI writes the code for you.',
-                ' *',
-                ' *   💡 Examples    — Pick a ready-made starter project. Great',
-                ' *                    for learning what the code looks like.',
-                ' *',
-                ' * Your work saves automatically, so don\'t worry about losing anything.',
-                ' *',
-                ' * When you\'re ready, plug in your ESP32 via USB and click',
-                ' * "Plug in Board" at the top, then "Send to Board" to run it.',
-                ' *',
-                ' * (This sample code blinks the onboard LED once a second — try it!)',
+                ' * Sample: blinks the onboard LED once a second.',
                 ' */',
                 '',
                 'const int LED_PIN = 2;',
@@ -2070,11 +2423,15 @@
                 '}',
                 ''
             ].join('\n');
+
+            var initialLangForWelcome = currentLanguage();
+            var welcomeCode = (initialLangForWelcome === 'python') ? welcomeCodePython : welcomeCodeCpp;
             var initialValue = (savedDraft && savedDraft.length > 0) ? savedDraft : welcomeCode;
 
+            var initialLang = currentLanguage();
             editor = monaco.editor.create(document.getElementById('editor-container'), {
                 value: initialValue,
-                language: 'cpp',
+                language: (initialLang === 'python' ? 'python' : 'cpp'),
                 theme: 'sunset-dark',
                 fontSize: settings.fontSize || 14,
                 minimap: { enabled: false },
