@@ -1947,6 +1947,20 @@
                 }
             } catch (e) {}
 
+            // If the Lessons panel is currently visible, re-render it in the new language
+            try {
+                var lessonsPanel = document.getElementById('panel-lessons');
+                if (lessonsPanel && lessonsPanel.classList.contains('active')) {
+                    if (currentLessonId) {
+                        showLesson(currentLessonId);     // re-render the detail view
+                    } else {
+                        var items = document.getElementById('lessons-list-items');
+                        if (items) { items.innerHTML = ''; }
+                        if (typeof renderLessonsList === 'function') renderLessonsList();
+                    }
+                }
+            } catch (e) {}
+
             serialLog(lang === 'python'
                 ? 'Switched to MicroPython — tiny, readable, runs instantly on the ESP32. No compile step.'
                 : 'Switched to Arduino C++ — classic. Needs a compile step before sending to the board.', 'sys');
@@ -3370,27 +3384,104 @@
         // ================================================================
         // GUIDED LESSONS
         // ================================================================
+        // Lessons are language-aware: each step has code.python (default) and code.cpp.
+        // The loadLessonStep() function picks based on the current language toggle.
         var lessons = [
             {
                 id: 'blink-basics',
                 title: 'Blink Basics',
                 level: 'Beginner · 10 minutes',
-                summary: 'Your very first ESP32 program. Turn the onboard LED on and off, then learn to change the speed.',
+                icon: '💡',
+                summary: 'Your very first program. Turn the onboard LED on, then make it blink — and learn what every line means along the way.',
                 steps: [
                     {
                         title: 'Step 1 — Turn on the LED',
-                        body: 'We\'ll start by turning the built-in LED on and never turning it off. Load this code, flash it, and watch the tiny blue LED glow.',
-                        code: '// Step 1: Always ON\nconst int LED = 2;\n\nvoid setup() {\n    pinMode(LED, OUTPUT);\n    digitalWrite(LED, HIGH);\n}\n\nvoid loop() {}\n'
+                        body: 'Every ESP32 board has a tiny LED built in. Most boards wire it to pin 2. We tell the board "pin 2 is an OUTPUT" (we send power out of it), then turn it ON. The "while True" loop just keeps it on forever.',
+                        code: {
+                            python:
+                                '# Step 1: Always ON\n' +
+                                'from machine import Pin   # MicroPython\'s hardware library\n' +
+                                'import time              # so we can pause between actions\n' +
+                                '\n' +
+                                'LED = 2                  # most ESP32 boards: built-in LED is on pin 2\n' +
+                                'led = Pin(LED, Pin.OUT)  # set up pin 2 as an OUTPUT (we send power OUT of it)\n' +
+                                '\n' +
+                                'led.value(1)             # 1 = HIGH voltage = LED on\n' +
+                                'while True:              # keep the program alive forever\n' +
+                                '    time.sleep_ms(100)   # just nap; nothing else to do',
+                            cpp:
+                                '// Step 1: Always ON (Arduino C++)\n' +
+                                'const int LED = 2;\n' +
+                                '\n' +
+                                'void setup() {\n' +
+                                '    pinMode(LED, OUTPUT);    // pin 2 is an OUTPUT\n' +
+                                '    digitalWrite(LED, HIGH); // HIGH = on\n' +
+                                '}\n' +
+                                '\n' +
+                                'void loop() {}            // nothing to repeat'
+                        }
                     },
                     {
-                        title: 'Step 2 — Blink it',
-                        body: 'Now add a delay so the LED flashes once per second. delay(1000) pauses the program for 1000 milliseconds — one second.',
-                        code: '// Step 2: Blink\nconst int LED = 2;\n\nvoid setup() {\n    pinMode(LED, OUTPUT);\n}\n\nvoid loop() {\n    digitalWrite(LED, HIGH);\n    delay(1000);\n    digitalWrite(LED, LOW);\n    delay(1000);\n}\n'
+                        title: 'Step 2 — Make it blink',
+                        body: 'Now we put the work INSIDE the loop, so it happens forever. Turn the LED on, wait 1 second, turn it off, wait 1 second, repeat. 1000 milliseconds = 1 second.',
+                        code: {
+                            python:
+                                '# Step 2: Blink — one second on, one second off\n' +
+                                'from machine import Pin\n' +
+                                'import time\n' +
+                                '\n' +
+                                'LED = 2\n' +
+                                'led = Pin(LED, Pin.OUT)\n' +
+                                '\n' +
+                                'while True:              # do all of this over and over\n' +
+                                '    led.value(1)         # on\n' +
+                                '    time.sleep_ms(1000)  # wait 1000ms = 1 second\n' +
+                                '    led.value(0)         # off\n' +
+                                '    time.sleep_ms(1000)',
+                            cpp:
+                                '// Step 2: Blink\n' +
+                                'const int LED = 2;\n' +
+                                '\n' +
+                                'void setup() { pinMode(LED, OUTPUT); }\n' +
+                                '\n' +
+                                'void loop() {\n' +
+                                '    digitalWrite(LED, HIGH);\n' +
+                                '    delay(1000);\n' +
+                                '    digitalWrite(LED, LOW);\n' +
+                                '    delay(1000);\n' +
+                                '}'
+                        }
                     },
                     {
                         title: 'Step 3 — Make it faster',
-                        body: 'Change both delays to 100 (one-tenth of a second). Flash it again and notice how quickly it blinks now. Experiment with other numbers!',
-                        code: '// Step 3: Fast blink\nconst int LED = 2;\n\nvoid setup() {\n    pinMode(LED, OUTPUT);\n}\n\nvoid loop() {\n    digitalWrite(LED, HIGH);\n    delay(100);\n    digitalWrite(LED, LOW);\n    delay(100);\n}\n'
+                        body: 'Change both sleeps from 1000ms to 100ms. Same program — way faster. Try different numbers and watch what happens. This is the magic loop: tweak, send, see.',
+                        code: {
+                            python:
+                                '# Step 3: Fast blink — try changing 100 to other numbers!\n' +
+                                'from machine import Pin\n' +
+                                'import time\n' +
+                                '\n' +
+                                'LED = 2\n' +
+                                'led = Pin(LED, Pin.OUT)\n' +
+                                '\n' +
+                                'while True:\n' +
+                                '    led.value(1)\n' +
+                                '    time.sleep_ms(100)   # 100ms = 0.1 second\n' +
+                                '    led.value(0)\n' +
+                                '    time.sleep_ms(100)',
+                            cpp:
+                                '// Step 3: Fast blink\n' +
+                                'const int LED = 2;\n' +
+                                '\n' +
+                                'void setup() { pinMode(LED, OUTPUT); }\n' +
+                                '\n' +
+                                'void loop() {\n' +
+                                '    digitalWrite(LED, HIGH);\n' +
+                                '    delay(100);\n' +
+                                '    digitalWrite(LED, LOW);\n' +
+                                '    delay(100);\n' +
+                                '}'
+                        }
                     }
                 ]
             },
@@ -3398,22 +3489,257 @@
                 id: 'button-led',
                 title: 'Button Controls LED',
                 level: 'Beginner · 15 minutes',
-                summary: 'Wire up a push-button and learn about INPUT_PULLUP, digitalRead, and if-statements.',
+                icon: '🔘',
+                summary: 'Hook up a push-button and learn about reading inputs. By the end you\'ll have a light that toggles on and off when you tap a button.',
                 steps: [
                     {
                         title: 'Step 1 — Read the button',
-                        body: 'Connect a push-button between GPIO 4 and GND. Print the button state to the serial monitor.',
-                        code: '// Step 1: Read the button\nconst int BUTTON = 4;\n\nvoid setup() {\n    Serial.begin(115200);\n    pinMode(BUTTON, INPUT_PULLUP);\n}\n\nvoid loop() {\n    int state = digitalRead(BUTTON);\n    Serial.println(state);\n    delay(100);\n}\n'
+                        body: 'Wire a push-button between pin 4 and GND. We use PULL_UP so the pin reads HIGH (1) when the button is open, and LOW (0) when you press it (connecting it to ground). Print the value so you can see it change in Board Messages.',
+                        code: {
+                            python:
+                                '# Step 1: Watch what the button is saying\n' +
+                                'from machine import Pin\n' +
+                                'import time\n' +
+                                '\n' +
+                                'BUTTON = 4\n' +
+                                '# PULL_UP: when no one is pressing, the pin reads HIGH (1).\n' +
+                                '# Pressing the button connects the pin to GND, so it reads LOW (0).\n' +
+                                'button = Pin(BUTTON, Pin.IN, Pin.PULL_UP)\n' +
+                                '\n' +
+                                'while True:\n' +
+                                '    print("Button:", button.value())   # 1 = open, 0 = pressed\n' +
+                                '    time.sleep_ms(100)',
+                            cpp:
+                                '// Step 1: Read the button\n' +
+                                'const int BUTTON = 4;\n' +
+                                '\n' +
+                                'void setup() {\n' +
+                                '    Serial.begin(115200);\n' +
+                                '    pinMode(BUTTON, INPUT_PULLUP);\n' +
+                                '}\n' +
+                                '\n' +
+                                'void loop() {\n' +
+                                '    Serial.println(digitalRead(BUTTON));\n' +
+                                '    delay(100);\n' +
+                                '}'
+                        }
                     },
                     {
                         title: 'Step 2 — Light an LED when pressed',
-                        body: 'When the button is pressed, the state reads LOW. Use an if-statement to light the onboard LED.',
-                        code: '// Step 2: Button -> LED\nconst int BUTTON = 4;\nconst int LED = 2;\n\nvoid setup() {\n    pinMode(BUTTON, INPUT_PULLUP);\n    pinMode(LED, OUTPUT);\n}\n\nvoid loop() {\n    if (digitalRead(BUTTON) == LOW) {\n        digitalWrite(LED, HIGH);\n    } else {\n        digitalWrite(LED, LOW);\n    }\n}\n'
+                        body: 'Now combine it: if the button is pressed (value == 0), turn the LED on. Otherwise, off. This is an "if-statement" — your first decision in code.',
+                        code: {
+                            python:
+                                '# Step 2: Button -> LED\n' +
+                                'from machine import Pin\n' +
+                                'import time\n' +
+                                '\n' +
+                                'BUTTON = 4\n' +
+                                'LED = 2\n' +
+                                'button = Pin(BUTTON, Pin.IN, Pin.PULL_UP)\n' +
+                                'led = Pin(LED, Pin.OUT)\n' +
+                                '\n' +
+                                'while True:\n' +
+                                '    if button.value() == 0:   # 0 means pressed\n' +
+                                '        led.value(1)          # turn ON\n' +
+                                '    else:\n' +
+                                '        led.value(0)          # turn OFF\n' +
+                                '    time.sleep_ms(50)',
+                            cpp:
+                                '// Step 2: Button -> LED\n' +
+                                'const int BUTTON = 4;\n' +
+                                'const int LED = 2;\n' +
+                                '\n' +
+                                'void setup() {\n' +
+                                '    pinMode(BUTTON, INPUT_PULLUP);\n' +
+                                '    pinMode(LED, OUTPUT);\n' +
+                                '}\n' +
+                                '\n' +
+                                'void loop() {\n' +
+                                '    if (digitalRead(BUTTON) == LOW) {\n' +
+                                '        digitalWrite(LED, HIGH);\n' +
+                                '    } else {\n' +
+                                '        digitalWrite(LED, LOW);\n' +
+                                '    }\n' +
+                                '}'
+                        }
                     },
                     {
                         title: 'Step 3 — Toggle on each press',
-                        body: 'Make the LED toggle on/off each time you press the button (not just while held). We track the previous state to detect the "press" moment.',
-                        code: '// Step 3: Toggle on press\nconst int BUTTON = 4;\nconst int LED = 2;\nbool ledOn = false;\nbool wasPressed = false;\n\nvoid setup() {\n    pinMode(BUTTON, INPUT_PULLUP);\n    pinMode(LED, OUTPUT);\n}\n\nvoid loop() {\n    bool pressed = (digitalRead(BUTTON) == LOW);\n    if (pressed && !wasPressed) {\n        ledOn = !ledOn;\n        digitalWrite(LED, ledOn ? HIGH : LOW);\n    }\n    wasPressed = pressed;\n    delay(20);\n}\n'
+                        body: 'Trickier: make the LED stay on after one press, and stay off after the next. We remember if the button WAS pressed last time. We only flip the LED at the moment of pressing — not the whole time the button is held.',
+                        code: {
+                            python:
+                                '# Step 3: Toggle on each press\n' +
+                                'from machine import Pin\n' +
+                                'import time\n' +
+                                '\n' +
+                                'BUTTON = 4\n' +
+                                'LED = 2\n' +
+                                'button = Pin(BUTTON, Pin.IN, Pin.PULL_UP)\n' +
+                                'led = Pin(LED, Pin.OUT)\n' +
+                                '\n' +
+                                'led_on = False        # remember if the LED is currently lit\n' +
+                                'was_pressed = False   # remember the button state from last time\n' +
+                                '\n' +
+                                'while True:\n' +
+                                '    pressed = (button.value() == 0)\n' +
+                                '    # Only flip when transitioning from NOT pressed -> pressed:\n' +
+                                '    if pressed and not was_pressed:\n' +
+                                '        led_on = not led_on            # flip the state\n' +
+                                '        led.value(1 if led_on else 0)\n' +
+                                '    was_pressed = pressed\n' +
+                                '    time.sleep_ms(20)                  # tiny delay = no "bouncing"',
+                            cpp:
+                                '// Step 3: Toggle on press\n' +
+                                'const int BUTTON = 4;\n' +
+                                'const int LED = 2;\n' +
+                                'bool ledOn = false;\n' +
+                                'bool wasPressed = false;\n' +
+                                '\n' +
+                                'void setup() {\n' +
+                                '    pinMode(BUTTON, INPUT_PULLUP);\n' +
+                                '    pinMode(LED, OUTPUT);\n' +
+                                '}\n' +
+                                '\n' +
+                                'void loop() {\n' +
+                                '    bool pressed = (digitalRead(BUTTON) == LOW);\n' +
+                                '    if (pressed && !wasPressed) {\n' +
+                                '        ledOn = !ledOn;\n' +
+                                '        digitalWrite(LED, ledOn ? HIGH : LOW);\n' +
+                                '    }\n' +
+                                '    wasPressed = pressed;\n' +
+                                '    delay(20);\n' +
+                                '}'
+                        }
+                    }
+                ]
+            },
+            {
+                id: 'rainbow-lights',
+                title: 'Rainbow Lights',
+                level: 'Beginner · 20 minutes',
+                icon: '🌈',
+                summary: 'Animate a strip of color-changing LEDs (NeoPixels). Learn how computers think about color, and how a small loop creates a smooth animation.',
+                steps: [
+                    {
+                        title: 'Step 1 — Light up one pixel',
+                        body: 'Connect a NeoPixel strip\'s Data line to pin 5, 5V to VIN, GND to GND. We\'ll start by lighting just the first LED bright red. Colors are (Red, Green, Blue) — each from 0 to 255.',
+                        code: {
+                            python:
+                                '# Step 1: One red pixel\n' +
+                                'from machine import Pin\n' +
+                                'import neopixel              # MicroPython\'s built-in NeoPixel driver\n' +
+                                '\n' +
+                                'PIXEL_PIN = 5\n' +
+                                'NUM_PIXELS = 8               # how many LEDs are on your strip\n' +
+                                '\n' +
+                                'strip = neopixel.NeoPixel(Pin(PIXEL_PIN), NUM_PIXELS)\n' +
+                                '\n' +
+                                'strip[0] = (255, 0, 0)       # first pixel = bright red\n' +
+                                'strip.write()                # actually send the colors to the strip\n' +
+                                'print("LED 0 should be red now")',
+                            cpp:
+                                '// Step 1: One red pixel (Arduino + Adafruit_NeoPixel)\n' +
+                                '#include <Adafruit_NeoPixel.h>\n' +
+                                '\n' +
+                                'const int PIXEL_PIN = 5;\n' +
+                                'const int NUM_PIXELS = 8;\n' +
+                                'Adafruit_NeoPixel strip(NUM_PIXELS, PIXEL_PIN, NEO_GRB + NEO_KHZ800);\n' +
+                                '\n' +
+                                'void setup() {\n' +
+                                '    strip.begin();\n' +
+                                '    strip.setPixelColor(0, strip.Color(255, 0, 0));\n' +
+                                '    strip.show();\n' +
+                                '}\n' +
+                                'void loop() {}'
+                        }
+                    },
+                    {
+                        title: 'Step 2 — Light all the pixels',
+                        body: 'A "for loop" lets us repeat something with a different number each time. Here we paint every pixel a different color of the rainbow.',
+                        code: {
+                            python:
+                                '# Step 2: Each pixel a different color\n' +
+                                'from machine import Pin\n' +
+                                'import neopixel\n' +
+                                '\n' +
+                                'strip = neopixel.NeoPixel(Pin(5), 8)\n' +
+                                '\n' +
+                                'colors = [\n' +
+                                '    (255, 0, 0),    # red\n' +
+                                '    (255, 127, 0),  # orange\n' +
+                                '    (255, 255, 0),  # yellow\n' +
+                                '    (0, 255, 0),    # green\n' +
+                                '    (0, 0, 255),    # blue\n' +
+                                '    (75, 0, 130),   # indigo\n' +
+                                '    (148, 0, 211),  # violet\n' +
+                                '    (255, 255, 255) # white\n' +
+                                ']\n' +
+                                '\n' +
+                                'for i in range(8):           # 0, 1, 2, 3, 4, 5, 6, 7\n' +
+                                '    strip[i] = colors[i]\n' +
+                                'strip.write()\n' +
+                                'print("Rainbow painted!")',
+                            cpp:
+                                '// Step 2: Paint a static rainbow\n' +
+                                '#include <Adafruit_NeoPixel.h>\n' +
+                                'Adafruit_NeoPixel strip(8, 5, NEO_GRB + NEO_KHZ800);\n' +
+                                '\n' +
+                                'void setup() {\n' +
+                                '    strip.begin();\n' +
+                                '    uint32_t rainbow[8] = {\n' +
+                                '        strip.Color(255,0,0), strip.Color(255,127,0),\n' +
+                                '        strip.Color(255,255,0), strip.Color(0,255,0),\n' +
+                                '        strip.Color(0,0,255), strip.Color(75,0,130),\n' +
+                                '        strip.Color(148,0,211), strip.Color(255,255,255)\n' +
+                                '    };\n' +
+                                '    for (int i = 0; i < 8; i++) strip.setPixelColor(i, rainbow[i]);\n' +
+                                '    strip.show();\n' +
+                                '}\n' +
+                                'void loop() {}'
+                        }
+                    },
+                    {
+                        title: 'Step 3 — Animate it',
+                        body: 'Real magic: shift every pixel by one each frame so the rainbow appears to MOVE. This is animation — drawing slightly different things very fast.',
+                        code: {
+                            python:
+                                '# Step 3: Animated rainbow\n' +
+                                'from machine import Pin\n' +
+                                'import neopixel, time\n' +
+                                '\n' +
+                                'strip = neopixel.NeoPixel(Pin(5), 8)\n' +
+                                '\n' +
+                                'def wheel(pos):\n' +
+                                '    # Turn a number 0-255 into a rainbow color.\n' +
+                                '    if pos < 85:   return (pos * 3, 255 - pos * 3, 0)\n' +
+                                '    elif pos < 170: pos -= 85; return (255 - pos*3, 0, pos*3)\n' +
+                                '    else:           pos -= 170; return (0, pos*3, 255 - pos*3)\n' +
+                                '\n' +
+                                'offset = 0\n' +
+                                'while True:\n' +
+                                '    for i in range(8):\n' +
+                                '        strip[i] = wheel((i * 32 + offset) & 255)\n' +
+                                '    strip.write()\n' +
+                                '    offset = (offset + 3) & 255   # shift the rainbow a bit\n' +
+                                '    time.sleep_ms(30)             # 30ms between frames = ~33fps',
+                            cpp:
+                                '// Step 3: Animated rainbow\n' +
+                                '#include <Adafruit_NeoPixel.h>\n' +
+                                'Adafruit_NeoPixel strip(8, 5, NEO_GRB + NEO_KHZ800);\n' +
+                                '\n' +
+                                'void setup() { strip.begin(); strip.setBrightness(50); }\n' +
+                                '\n' +
+                                'void loop() {\n' +
+                                '    for (long h = 0; h < 5 * 65536; h += 256) {\n' +
+                                '        for (int i = 0; i < 8; i++) {\n' +
+                                '            int p = h + (i * 65536L / 8);\n' +
+                                '            strip.setPixelColor(i, strip.gamma32(strip.ColorHSV(p)));\n' +
+                                '        }\n' +
+                                '        strip.show();\n' +
+                                '        delay(10);\n' +
+                                '    }\n' +
+                                '}'
+                        }
                     }
                 ]
             },
@@ -3421,35 +3747,244 @@
                 id: 'wifi-hello',
                 title: 'Hello, WiFi',
                 level: 'Beginner · 20 minutes',
-                summary: 'Connect to your home WiFi and fetch the current time from the internet.',
+                icon: '📶',
+                summary: 'Get your project online. Connect to your home WiFi and fetch the current time from the internet.',
                 steps: [
                     {
                         title: 'Step 1 — Connect to WiFi',
-                        body: 'Replace YOUR_SSID and YOUR_PASSWORD with your network. Watch the serial monitor — dots print while connecting.',
-                        code: '// Step 1: Connect\n#include <WiFi.h>\n\nconst char* SSID = "YOUR_SSID";\nconst char* PASS = "YOUR_PASSWORD";\n\nvoid setup() {\n    Serial.begin(115200);\n    WiFi.begin(SSID, PASS);\n    while (WiFi.status() != WL_CONNECTED) { delay(300); Serial.print("."); }\n    Serial.println();\n    Serial.print("IP address: ");\n    Serial.println(WiFi.localIP());\n}\n\nvoid loop() {}\n'
+                        body: 'Replace YOUR_WIFI_NAME and YOUR_WIFI_PASSWORD with your network. The ESP32 connects exactly like your phone does. Watch Board Messages — you\'ll see dots while it\'s connecting, then a "Connected!" line with its IP address.',
+                        code: {
+                            python:
+                                '# Step 1: Get on the wifi\n' +
+                                'import network\n' +
+                                'import time\n' +
+                                '\n' +
+                                'SSID = "YOUR_WIFI_NAME"        # change me!\n' +
+                                'PASSWORD = "YOUR_WIFI_PASSWORD"  # change me!\n' +
+                                '\n' +
+                                '# "STA_IF" = "Station" mode = joining an existing network (like a phone does)\n' +
+                                'wifi = network.WLAN(network.STA_IF)\n' +
+                                'wifi.active(True)\n' +
+                                'wifi.connect(SSID, PASSWORD)\n' +
+                                '\n' +
+                                'print("Connecting", end="")\n' +
+                                'while not wifi.isconnected():\n' +
+                                '    print(".", end="")\n' +
+                                '    time.sleep(1)\n' +
+                                'print("\\nConnected!")\n' +
+                                'print("IP address:", wifi.ifconfig()[0])',
+                            cpp:
+                                '// Step 1: Connect to WiFi\n' +
+                                '#include <WiFi.h>\n' +
+                                '\n' +
+                                'const char* SSID = "YOUR_WIFI_NAME";\n' +
+                                'const char* PASS = "YOUR_WIFI_PASSWORD";\n' +
+                                '\n' +
+                                'void setup() {\n' +
+                                '    Serial.begin(115200);\n' +
+                                '    WiFi.begin(SSID, PASS);\n' +
+                                '    while (WiFi.status() != WL_CONNECTED) { delay(300); Serial.print("."); }\n' +
+                                '    Serial.print("\\nIP: ");\n' +
+                                '    Serial.println(WiFi.localIP());\n' +
+                                '}\n' +
+                                'void loop() {}'
+                        }
                     },
                     {
-                        title: 'Step 2 — Get the time',
-                        body: 'Use NTP to sync the clock. The ESP32 has no battery-backed clock — it asks the internet for the time.',
-                        code: '// Step 2: NTP time\n#include <WiFi.h>\n#include <time.h>\n\nconst char* SSID = "YOUR_SSID";\nconst char* PASS = "YOUR_PASSWORD";\n\nvoid setup() {\n    Serial.begin(115200);\n    WiFi.begin(SSID, PASS);\n    while (WiFi.status() != WL_CONNECTED) delay(300);\n    configTime(-8 * 3600, 3600, "pool.ntp.org");\n    Serial.println("Connected, waiting for time...");\n}\n\nvoid loop() {\n    time_t now = time(nullptr);\n    Serial.println(ctime(&now));\n    delay(5000);\n}\n'
+                        title: 'Step 2 — Get the time from the internet',
+                        body: 'Your ESP32 has no clock battery, so it has no idea what time it is when it boots up. We ask the internet (NTP servers). Once we have the time, we print it every 5 seconds.',
+                        code: {
+                            python:
+                                '# Step 2: Get the time from an NTP server\n' +
+                                'import network\n' +
+                                'import ntptime    # NTP = Network Time Protocol; just "ask the internet"\n' +
+                                'import time\n' +
+                                '\n' +
+                                'SSID = "YOUR_WIFI_NAME"\n' +
+                                'PASSWORD = "YOUR_WIFI_PASSWORD"\n' +
+                                '\n' +
+                                'wifi = network.WLAN(network.STA_IF)\n' +
+                                'wifi.active(True)\n' +
+                                'wifi.connect(SSID, PASSWORD)\n' +
+                                'while not wifi.isconnected():\n' +
+                                '    time.sleep(1)\n' +
+                                'print("Online! Asking the internet what time it is...")\n' +
+                                '\n' +
+                                'ntptime.settime()         # sync the chip\'s clock with the world\n' +
+                                '\n' +
+                                'while True:\n' +
+                                '    t = time.localtime()  # (year, month, day, hour, min, sec, ...)\n' +
+                                '    print("UTC:", t[3], ":", t[4], ":", t[5])\n' +
+                                '    time.sleep(5)',
+                            cpp:
+                                '// Step 2: Get the time via NTP\n' +
+                                '#include <WiFi.h>\n' +
+                                '#include <time.h>\n' +
+                                '\n' +
+                                'const char* SSID = "YOUR_WIFI_NAME";\n' +
+                                'const char* PASS = "YOUR_WIFI_PASSWORD";\n' +
+                                '\n' +
+                                'void setup() {\n' +
+                                '    Serial.begin(115200);\n' +
+                                '    WiFi.begin(SSID, PASS);\n' +
+                                '    while (WiFi.status() != WL_CONNECTED) delay(300);\n' +
+                                '    configTime(0, 0, "pool.ntp.org");\n' +
+                                '}\n' +
+                                'void loop() {\n' +
+                                '    time_t now = time(nullptr);\n' +
+                                '    Serial.println(ctime(&now));\n' +
+                                '    delay(5000);\n' +
+                                '}'
+                        }
                     }
                 ]
             },
             {
                 id: 'sensor-dashboard',
-                title: 'Mini Sensor Dashboard',
+                title: 'Phone-Friendly Dashboard',
                 level: 'Intermediate · 25 minutes',
-                summary: 'Serve a live web page from your ESP32 showing sensor readings. Open it on your phone on the same WiFi.',
+                icon: '📱',
+                summary: 'Serve a tiny web page from your project so you can see its data from any phone on the same WiFi. This is the foundation of the Internet of Things.',
                 steps: [
                     {
-                        title: 'Step 1 — Serve a static page',
-                        body: 'Put the ESP32 on WiFi and serve a simple HTML hello. Open the printed IP in your browser.',
-                        code: '// Step 1: Static web page\n#include <WiFi.h>\n#include <WebServer.h>\n\nconst char* SSID = "YOUR_SSID";\nconst char* PASS = "YOUR_PASSWORD";\nWebServer server(80);\n\nvoid setup() {\n    Serial.begin(115200);\n    WiFi.begin(SSID, PASS);\n    while (WiFi.status() != WL_CONNECTED) delay(300);\n    Serial.println(WiFi.localIP());\n    server.on("/", []() { server.send(200, "text/html", "<h1>Hello from ESP32!</h1>"); });\n    server.begin();\n}\n\nvoid loop() { server.handleClient(); }\n'
+                        title: 'Step 1 — Serve a web page',
+                        body: 'Get on WiFi, then turn the ESP32 into a tiny web server. When you open its IP address in any browser, it sends back a "Hello!" page. Open the IP from Board Messages on your phone or laptop on the same network.',
+                        code: {
+                            python:
+                                '# Step 1: A web server says hello\n' +
+                                'import network\n' +
+                                'import socket\n' +
+                                'import time\n' +
+                                '\n' +
+                                'SSID = "YOUR_WIFI_NAME"\n' +
+                                'PASSWORD = "YOUR_WIFI_PASSWORD"\n' +
+                                '\n' +
+                                'wifi = network.WLAN(network.STA_IF)\n' +
+                                'wifi.active(True); wifi.connect(SSID, PASSWORD)\n' +
+                                'while not wifi.isconnected(): time.sleep(1)\n' +
+                                'print("Open this in your phone\'s browser:")\n' +
+                                'print("http://" + wifi.ifconfig()[0])\n' +
+                                '\n' +
+                                's = socket.socket(socket.AF_INET, socket.SOCK_STREAM)\n' +
+                                's.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)\n' +
+                                's.bind(("", 80))    # port 80 = the normal web port\n' +
+                                's.listen(1)\n' +
+                                '\n' +
+                                'while True:\n' +
+                                '    conn, addr = s.accept()                    # wait for a visitor\n' +
+                                '    conn.recv(1024)                            # read their request\n' +
+                                '    body = "<h1>Hello from your ESP32!</h1>"\n' +
+                                '    conn.send("HTTP/1.0 200 OK\\r\\nContent-Type: text/html\\r\\n\\r\\n" + body)\n' +
+                                '    conn.close()',
+                            cpp:
+                                '// Step 1: ESP32 says hello via web\n' +
+                                '#include <WiFi.h>\n' +
+                                '#include <WebServer.h>\n' +
+                                '\n' +
+                                'const char* SSID = "YOUR_WIFI_NAME";\n' +
+                                'const char* PASS = "YOUR_WIFI_PASSWORD";\n' +
+                                'WebServer server(80);\n' +
+                                '\n' +
+                                'void setup() {\n' +
+                                '    Serial.begin(115200);\n' +
+                                '    WiFi.begin(SSID, PASS);\n' +
+                                '    while (WiFi.status() != WL_CONNECTED) delay(300);\n' +
+                                '    Serial.println(WiFi.localIP());\n' +
+                                '    server.on("/", []() { server.send(200, "text/html", "<h1>Hello!</h1>"); });\n' +
+                                '    server.begin();\n' +
+                                '}\n' +
+                                'void loop() { server.handleClient(); }'
+                        }
                     },
                     {
-                        title: 'Step 2 — Add a live reading',
-                        body: 'Serve the internal temperature sensor value. Refresh the page and watch the number change.',
-                        code: '// Step 2: Live temp\n#include <WiFi.h>\n#include <WebServer.h>\n\nconst char* SSID = "YOUR_SSID";\nconst char* PASS = "YOUR_PASSWORD";\nWebServer server(80);\n\nfloat cpuTempFake() { return 20.0 + (millis() % 10000) / 1000.0; }\n\nvoid setup() {\n    Serial.begin(115200);\n    WiFi.begin(SSID, PASS);\n    while (WiFi.status() != WL_CONNECTED) delay(300);\n    Serial.println(WiFi.localIP());\n    server.on("/", []() {\n        String html = "<h1>ESP32 Dashboard</h1>";\n        html += "<p>Uptime: " + String(millis()/1000) + "s</p>";\n        html += "<p>Fake temp: " + String(cpuTempFake(),1) + " C</p>";\n        html += "<p><a href=/>Refresh</a></p>";\n        server.send(200, "text/html", html);\n    });\n    server.begin();\n}\n\nvoid loop() { server.handleClient(); }\n'
+                        title: 'Step 2 — Show live data',
+                        body: 'Make the page show how long the ESP32 has been running (uptime) and the chip temperature. Refresh the page on your phone and watch the numbers change.',
+                        code: {
+                            python:
+                                '# Step 2: A live dashboard\n' +
+                                'import network, socket, time, esp32\n' +
+                                '\n' +
+                                'SSID = "YOUR_WIFI_NAME"\n' +
+                                'PASSWORD = "YOUR_WIFI_PASSWORD"\n' +
+                                '\n' +
+                                'wifi = network.WLAN(network.STA_IF)\n' +
+                                'wifi.active(True); wifi.connect(SSID, PASSWORD)\n' +
+                                'while not wifi.isconnected(): time.sleep(1)\n' +
+                                'print("Open: http://" + wifi.ifconfig()[0])\n' +
+                                '\n' +
+                                's = socket.socket(socket.AF_INET, socket.SOCK_STREAM)\n' +
+                                's.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)\n' +
+                                's.bind(("", 80)); s.listen(1)\n' +
+                                '\n' +
+                                'start = time.ticks_ms()\n' +
+                                'while True:\n' +
+                                '    conn, _ = s.accept()\n' +
+                                '    conn.recv(1024)\n' +
+                                '    uptime = time.ticks_diff(time.ticks_ms(), start) // 1000\n' +
+                                '    temp = esp32.mcu_temperature()\n' +
+                                '    body = "<h1>ESP32 Dashboard</h1>"\n' +
+                                '    body += "<p>Uptime: " + str(uptime) + " sec</p>"\n' +
+                                '    body += "<p>Chip temp: " + str(temp) + " &deg;C</p>"\n' +
+                                '    body += "<p><a href=/>Refresh</a></p>"\n' +
+                                '    conn.send("HTTP/1.0 200 OK\\r\\nContent-Type: text/html\\r\\n\\r\\n" + body)\n' +
+                                '    conn.close()',
+                            cpp:
+                                '// Step 2: Live dashboard\n' +
+                                '#include <WiFi.h>\n' +
+                                '#include <WebServer.h>\n' +
+                                '\n' +
+                                'const char* SSID = "YOUR_WIFI_NAME";\n' +
+                                'const char* PASS = "YOUR_WIFI_PASSWORD";\n' +
+                                'WebServer server(80);\n' +
+                                '\n' +
+                                'void setup() {\n' +
+                                '    Serial.begin(115200);\n' +
+                                '    WiFi.begin(SSID, PASS);\n' +
+                                '    while (WiFi.status() != WL_CONNECTED) delay(300);\n' +
+                                '    Serial.println(WiFi.localIP());\n' +
+                                '    server.on("/", []() {\n' +
+                                '        String html = "<h1>ESP32 Dashboard</h1>";\n' +
+                                '        html += "<p>Uptime: " + String(millis()/1000) + "s</p>";\n' +
+                                '        html += "<p><a href=/>Refresh</a></p>";\n' +
+                                '        server.send(200, "text/html", html);\n' +
+                                '    });\n' +
+                                '    server.begin();\n' +
+                                '}\n' +
+                                'void loop() { server.handleClient(); }'
+                        }
+                    }
+                ]
+            },
+            {
+                id: 'photo-to-code',
+                title: 'Photo to Code',
+                level: 'Beginner · 5 minutes · No board needed',
+                icon: '📸',
+                summary: 'The most magical feature of all — point a camera at your project and let AI write the code for you. This lesson walks you through one round.',
+                steps: [
+                    {
+                        title: 'Step 1 — Open the Photo tab',
+                        body: 'Click the Photo tab on the left sidebar (the first one — camera icon). You\'ll see a big "Take a Photo" button at the top. Either let it open your camera, or upload a photo of your breadboard from your phone\'s gallery. The AI will look at the photo and figure out what parts are there.',
+                        code: {
+                            python: '# This lesson is interactive — use the Photo tab on the left.\n# No code to load for this step. Snap a photo and come back!',
+                            cpp:    '// This lesson is interactive — use the Photo tab on the left.\n// No code to load for this step. Snap a photo and come back!'
+                        }
+                    },
+                    {
+                        title: 'Step 2 — Tell the AI what you want',
+                        body: 'After your photo loads, type what you want it to do — in plain English. Examples: "Make the LED blink fast when motion is detected" or "Light up a different color for each second of uptime." Click "Analyze & Generate Code." The AI writes complete, commented code that works with what it sees in your photo.',
+                        code: {
+                            python: '# After clicking "Analyze & Generate Code", the AI\'s code lands in the editor.\n# Read the comments — they explain WHY each line is there.',
+                            cpp:    '// After clicking "Analyze & Generate Code", the AI\'s code lands in the editor.\n// Read the comments — they explain WHY each line is there.'
+                        }
+                    },
+                    {
+                        title: 'Step 3 — Iterate',
+                        body: 'Don\'t love what the AI made? Just tweak it. Edit a number, change a color, or go back to the Build tab and describe a different idea using the same photo. This is the magic loop — see something, change something, learn something. Real engineering, on real hardware, written for kids.',
+                        code: {
+                            python: '# Iterate freely — change colors, timings, conditions.\n# Your work auto-saves, so nothing is ever lost.',
+                            cpp:    '// Iterate freely — change colors, timings, conditions.\n// Your work auto-saves, so nothing is ever lost.'
+                        }
                     }
                 ]
             }
@@ -3459,15 +3994,25 @@
             document.getElementById('lessons-list').style.display = '';
             document.getElementById('lessons-detail').style.display = 'none';
             var items = document.getElementById('lessons-list-items');
-            if (items.children.length > 0) return; // already rendered
+            // Always re-render so the language hint at the top stays accurate
             items.innerHTML = '';
+            var lang = currentLanguage();
+            var langLabel = (lang === 'python') ? 'Python' : 'Arduino C++';
+
+            // Tiny language hint above the cards
+            var hint = document.createElement('div');
+            hint.style.cssText = 'font-size:0.72rem;color:var(--text-dim);margin-bottom:0.7rem;line-height:1.5;';
+            hint.innerHTML = 'Showing lesson code in <strong style="color:var(--orange);">' + langLabel + '</strong>. Switch with the language pill in the top bar.';
+            items.appendChild(hint);
+
             lessons.forEach(function(l) {
                 var card = document.createElement('div');
                 card.className = 'lesson-card';
                 card.onclick = function() { showLesson(l.id); };
+                var icon = l.icon || '📖';
                 card.innerHTML =
                     '<div class="lesson-card-title">' +
-                        '<i data-lucide="book-open" style="width:14px;height:14px;color:var(--orange);"></i> ' + escapeHtml(l.title) +
+                        '<span style="margin-right:0.35rem;">' + icon + '</span>' + escapeHtml(l.title) +
                     '</div>' +
                     '<div class="lesson-card-meta">' + escapeHtml(l.level) + ' · ' + l.steps.length + ' steps</div>' +
                     '<div class="lesson-card-desc">' + escapeHtml(l.summary) + '</div>';
@@ -3480,6 +4025,9 @@
             currentLessonId = null;
             document.getElementById('lessons-list').style.display = '';
             document.getElementById('lessons-detail').style.display = 'none';
+            // Re-render so the language hint reflects any toggle made meanwhile
+            document.getElementById('lessons-list-items').innerHTML = '';
+            renderLessonsList();
         }
 
         function showLesson(id) {
@@ -3489,10 +4037,17 @@
             document.getElementById('lessons-list').style.display = 'none';
             document.getElementById('lessons-detail').style.display = '';
             var el = document.getElementById('lesson-detail-content');
-            var html = '<div style="margin-bottom:0.6rem;">' +
-                '<div style="font-weight:800;font-size:1rem;color:var(--text);margin-bottom:0.15rem;">' + escapeHtml(lesson.title) + '</div>' +
+            var lang = currentLanguage();
+            var langLabel = (lang === 'python') ? 'Python' : 'Arduino C++';
+            var icon = lesson.icon || '📖';
+
+            var html = '<div style="margin-bottom:0.7rem;">' +
+                '<div style="font-weight:800;font-size:1.05rem;color:#ffffff;margin-bottom:0.2rem;">' +
+                    '<span style="margin-right:0.35rem;">' + icon + '</span>' + escapeHtml(lesson.title) +
+                '</div>' +
                 '<div style="font-size:0.7rem;color:var(--text-dimmer);text-transform:uppercase;letter-spacing:0.5px;">' + escapeHtml(lesson.level) + '</div>' +
-                '<p style="font-size:0.78rem;color:var(--text-dim);line-height:1.5;margin-top:0.5rem;">' + escapeHtml(lesson.summary) + '</p>' +
+                '<p style="font-size:0.78rem;color:var(--text-dim);line-height:1.55;margin-top:0.5rem;">' + escapeHtml(lesson.summary) + '</p>' +
+                '<div style="font-size:0.68rem;color:var(--text-dimmer);margin-top:0.45rem;">Code in <strong style="color:var(--orange);">' + langLabel + '</strong> (change in the top bar)</div>' +
                 '</div>';
             lesson.steps.forEach(function(step, i) {
                 html += '<div class="lesson-step">' +
@@ -3500,7 +4055,7 @@
                     '<div class="lesson-step-title">' + escapeHtml(step.title) + '</div>' +
                     '<div class="lesson-step-desc">' + escapeHtml(step.body) + '</div>' +
                     '<button class="btn btn-sm btn-orange" onclick="loadLessonStep(\'' + id + '\',' + i + ')">' +
-                        '<i data-lucide="code" style="width:12px;height:12px;"></i> Load this code' +
+                        '<i data-lucide="code" style="width:12px;height:12px;"></i> Try this in ' + escapeHtml(langLabel) +
                     '</button>' +
                     '</div>';
             });
@@ -3511,11 +4066,22 @@
         function loadLessonStep(lessonId, stepIdx) {
             var lesson = lessons.find(function(l) { return l.id === lessonId; });
             if (!lesson || !lesson.steps[stepIdx]) return;
-            if (editor) {
-                editor.setValue(lesson.steps[stepIdx].code);
-                document.querySelector('.editor-tab').textContent = lesson.id + '-step-' + (stepIdx + 1) + '.ino';
-                serialLog('Loaded: ' + lesson.title + ' — Step ' + (stepIdx + 1), 'sys');
-            }
+            if (!editor) return;
+            var lang = currentLanguage();
+            var step = lesson.steps[stepIdx];
+            // New shape: code is { python, cpp }. Fall back to old single-string shape if any old data sneaks in.
+            var codeText = (step.code && typeof step.code === 'object')
+                ? (step.code[lang] || step.code.python || step.code.cpp || '')
+                : (step.code || '');
+            editor.setValue(codeText);
+            // Update Monaco's language highlighting to match the code we just loaded
+            try {
+                if (editor.getModel && monaco && monaco.editor) {
+                    var model = editor.getModel();
+                    if (model) monaco.editor.setModelLanguage(model, lang === 'python' ? 'python' : 'cpp');
+                }
+            } catch (e) {}
+            serialLog('Loaded: ' + lesson.title + ' — Step ' + (stepIdx + 1) + ' (' + (lang === 'python' ? 'Python' : 'Arduino C++') + ')', 'sys');
         }
 
         function escapeHtml(s) {
