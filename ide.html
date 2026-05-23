@@ -842,6 +842,18 @@
         /* ===== LESSONS ===== */
         .lesson-card { background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; padding: 0.8rem; margin-bottom: 0.6rem; transition: all 0.2s; cursor: pointer; }
         .lesson-card:hover { border-color: var(--orange); transform: translateY(-1px); }
+
+        /* ===== SAVED PROJECTS ===== */
+        .saved-project { display: flex; align-items: center; gap: 0.5rem; background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px; padding: 0.6rem 0.7rem; margin-bottom: 0.5rem; transition: border-color 0.15s ease; }
+        .saved-project:hover { border-color: var(--border-light); }
+        .saved-project .sp-info { flex: 1; min-width: 0; cursor: pointer; }
+        .saved-project .sp-name { font-size: 0.85rem; font-weight: 600; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .saved-project .sp-meta { font-size: 0.66rem; color: var(--text-dimmer); margin-top: 0.1rem; }
+        .saved-project .sp-lang { color: var(--orange); font-weight: 700; }
+        .saved-project .sp-actions { display: flex; gap: 0.2rem; flex-shrink: 0; }
+        .saved-project .sp-btn { background: transparent; border: none; color: var(--text-dim); font-size: 0.85rem; width: 26px; height: 26px; border-radius: 6px; cursor: pointer; transition: background 0.15s ease, color 0.15s ease; }
+        .saved-project .sp-btn:hover { background: var(--bg-hover); color: #ffffff; }
+        .saved-project .sp-btn.sp-del:hover { background: rgba(255,82,82,0.15); color: var(--red); }
         .lesson-card-title { font-size: 0.85rem; font-weight: 700; color: var(--text); margin-bottom: 0.2rem; display: flex; align-items: center; gap: 0.4rem; }
         .lesson-card-meta { font-size: 0.65rem; color: var(--text-dimmer); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.4rem; }
         .lesson-card-desc { font-size: 0.75rem; color: var(--text-dim); line-height: 1.5; }
@@ -966,6 +978,9 @@
                 </button>
                 <button class="sidebar-tab" onclick="switchSidebarTab('lessons')" title="Step-by-step lessons">
                     <i data-lucide="graduation-cap" style="width:14px;height:14px;"></i> Learn
+                </button>
+                <button class="sidebar-tab" onclick="switchSidebarTab('saved')" title="Your saved projects">
+                    <i data-lucide="folder" style="width:14px;height:14px;"></i> Saved
                 </button>
                 <button class="sidebar-tab" onclick="switchSidebarTab('settings')" title="Options and API key" style="flex:0 0 auto;padding-left:0.55rem;padding-right:0.55rem;">
                     <i data-lucide="settings" style="width:14px;height:14px;"></i>
@@ -1171,6 +1186,20 @@
                         <i data-lucide="arrow-left" style="width:12px;height:12px;"></i> Back to lessons
                     </button>
                     <div id="lesson-detail-content"></div>
+                </div>
+            </div>
+
+            <!-- SAVED PROJECTS PANEL -->
+            <div class="sidebar-panel" id="panel-saved">
+                <div class="section">
+                    <span class="section-label" style="color:#ffffff;font-size:0.85rem;">💾 Your Projects</span>
+                    <p style="font-size:0.76rem;color:var(--text-dim);margin-bottom:0.7rem;line-height:1.5;">
+                        Save the code you're working on so you can come back to it later. Everything stays in this browser — nothing is uploaded.
+                    </p>
+                    <button class="btn btn-orange" onclick="saveCurrentProject()" style="width:100%;justify-content:center;padding:0.6rem;margin-bottom:0.9rem;">
+                        <i data-lucide="save" style="width:14px;height:14px;"></i> Save current project
+                    </button>
+                    <div id="saved-projects-list"></div>
                 </div>
             </div>
 
@@ -2543,12 +2572,103 @@
             document.querySelectorAll('.sidebar-tab').forEach(function(t) { t.classList.remove('active'); });
             document.querySelectorAll('.sidebar-panel').forEach(function(p) { p.classList.remove('active'); });
             var tabs = document.querySelectorAll('.sidebar-tab');
-            var idx = { snap: 0, ai: 1, templates: 2, lessons: 3, settings: 4 }[tab];
+            var idx = { snap: 0, ai: 1, templates: 2, lessons: 3, saved: 4, settings: 5 }[tab];
             if (tabs[idx]) tabs[idx].classList.add('active');
             var panel = document.getElementById('panel-' + tab);
             if (panel) panel.classList.add('active');
             if (tab === 'lessons') renderLessonsList();
             if (tab === 'snap') selectSnapProvider(snapProvider);
+            if (tab === 'saved') renderProjectsList();
+        }
+
+        // ================================================================
+        // MY PROJECTS — save/load multiple named builds in the browser
+        // ================================================================
+        function getSavedProjects() {
+            try { return JSON.parse(localStorage.getItem('cwg-projects') || '[]'); }
+            catch (e) { return []; }
+        }
+        function setSavedProjects(list) {
+            try { localStorage.setItem('cwg-projects', JSON.stringify(list)); } catch (e) {}
+        }
+
+        function saveCurrentProject() {
+            if (!editor || !editor.getValue().trim()) {
+                alert('There\'s no code to save yet. Build, snap, or load something first!');
+                return;
+            }
+            var name = prompt('Name this project:', 'My Project ' + (getSavedProjects().length + 1));
+            if (name === null) return;            // cancelled
+            name = name.trim() || 'Untitled';
+            var list = getSavedProjects();
+            list.unshift({
+                id: 'p' + Date.now(),
+                name: name,
+                lang: currentLanguage(),
+                code: editor.getValue(),
+                ts: Date.now()
+            });
+            setSavedProjects(list);
+            renderProjectsList();
+            serialLog('Saved project: "' + name + '"', 'sys');
+        }
+
+        function loadProject(id) {
+            var p = getSavedProjects().find(function(x) { return x.id === id; });
+            if (!p || !editor) return;
+            if (editor.getValue().trim() && !confirm('Load "' + p.name + '"? This replaces what\'s in the editor right now. (Your other saved projects are safe.)')) return;
+            if (p.lang === 'python' || p.lang === 'cpp') setLanguage(p.lang);
+            editor.setValue(p.code);
+            serialLog('Loaded project: "' + p.name + '"', 'sys');
+        }
+
+        function renameProject(id) {
+            var list = getSavedProjects();
+            var p = list.find(function(x) { return x.id === id; });
+            if (!p) return;
+            var name = prompt('Rename project:', p.name);
+            if (name === null) return;
+            p.name = name.trim() || p.name;
+            setSavedProjects(list);
+            renderProjectsList();
+        }
+
+        function deleteProject(id) {
+            var list = getSavedProjects();
+            var p = list.find(function(x) { return x.id === id; });
+            if (!p) return;
+            if (!confirm('Delete "' + p.name + '"? This can\'t be undone.')) return;
+            setSavedProjects(list.filter(function(x) { return x.id !== id; }));
+            renderProjectsList();
+            serialLog('Deleted project: "' + p.name + '"', 'sys');
+        }
+
+        function renderProjectsList() {
+            var el = document.getElementById('saved-projects-list');
+            if (!el) return;
+            var list = getSavedProjects();
+            if (list.length === 0) {
+                el.innerHTML = '<p style="font-size:0.75rem;color:var(--text-dimmer);line-height:1.5;text-align:center;padding:1rem 0;">No saved projects yet.<br>Click "Save current project" above to keep your first one.</p>';
+                return;
+            }
+            var html = '';
+            list.forEach(function(p) {
+                var langBadge = (p.lang === 'cpp') ? 'C++' : 'Python';
+                var when = new Date(p.ts);
+                var dateStr = (when.getMonth() + 1) + '/' + when.getDate() + '/' + String(when.getFullYear()).slice(2);
+                html += '<div class="saved-project">' +
+                    '<div class="sp-info" onclick="loadProject(\'' + p.id + '\')" title="Click to load">' +
+                        '<div class="sp-name">' + escapeHtml(p.name) + '</div>' +
+                        '<div class="sp-meta"><span class="sp-lang">' + langBadge + '</span> · ' + dateStr + '</div>' +
+                    '</div>' +
+                    '<div class="sp-actions">' +
+                        '<button class="sp-btn" onclick="loadProject(\'' + p.id + '\')" title="Load">↥</button>' +
+                        '<button class="sp-btn" onclick="renameProject(\'' + p.id + '\')" title="Rename">✎</button>' +
+                        '<button class="sp-btn sp-del" onclick="deleteProject(\'' + p.id + '\')" title="Delete">🗑</button>' +
+                    '</div>' +
+                    '</div>';
+            });
+            el.innerHTML = html;
         }
 
         function toggleMobileSidebar() {
