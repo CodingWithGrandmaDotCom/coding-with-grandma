@@ -1276,6 +1276,16 @@
                 </div>
 
                 <div class="section">
+                    <span class="section-label" style="color:#ffffff;font-size:0.82rem;">🐍 Set up MicroPython (one time)</span>
+                    <p style="font-size:0.72rem;color:var(--text-dim);margin-bottom:0.5rem;line-height:1.5;">
+                        New board? Install MicroPython once so your code runs <strong style="color:var(--gold);">instantly</strong> — no compiling, ever. Takes about a minute over USB.
+                    </p>
+                    <button class="btn btn-orange" onclick="openMpyWizard()" style="width:100%;justify-content:center;padding:0.6rem;">
+                        <i data-lucide="download" style="width:14px;height:14px;"></i> Set up my board
+                    </button>
+                </div>
+
+                <div class="section">
                     <span class="section-label" style="color:#ffffff;font-size:0.82rem;">🔑 Gemini Key (recommended)</span>
                     <p style="font-size:0.72rem;color:var(--text-dim);margin-bottom:0.5rem;line-height:1.5;">
                         Gemini is Google's AI. It's free, and it's what powers the Photo tab. Grab a key at <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--orange);text-decoration:none;">aistudio.google.com/apikey</a> (takes 30 seconds, no credit card).
@@ -1628,6 +1638,48 @@
                 <button class="btn" onclick="closeFlashModal()">Close</button>
                 <button class="btn btn-orange" id="flash-start-btn" onclick="startFlash()">
                     <i data-lucide="zap" style="width:14px;height:14px;"></i> Send It
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MICROPYTHON SETUP WIZARD -->
+    <div class="modal-overlay" id="mpy-modal">
+        <div class="modal" style="max-width:560px;">
+            <h2><span style="margin-right:0.3rem;">🐍</span> Set up MicroPython (one time)</h2>
+            <p class="hint">
+                To run Python <strong style="color:var(--gold);">instantly</strong> on your board — with no compiling, ever — your ESP32 needs MicroPython installed once.
+                After this, you just write Python and tap Send. You'll only redo this if you ever want to wipe the board.
+            </p>
+            <ol style="font-size:0.82rem;color:var(--text-dim);line-height:1.7;margin:0.8rem 0 0.8rem 1.1rem;">
+                <li>Plug your ESP32 into this computer with a USB cable.</li>
+                <li>Pick your board type below (if unsure, leave it on the default).</li>
+                <li>Click <strong>Install MicroPython</strong>, then choose your board's port when asked.</li>
+                <li>Wait about a minute. <strong style="color:var(--coral);">Don't unplug it!</strong></li>
+            </ol>
+            <div class="flash-row">
+                <label>Board type</label>
+                <select id="mpy-board">
+                    <option value="ESP32_GENERIC">ESP32 — most common</option>
+                    <option value="ESP32_GENERIC_S3">ESP32-S3</option>
+                    <option value="ESP32_GENERIC_C3">ESP32-C3</option>
+                    <option value="ESP32_GENERIC_S2">ESP32-S2</option>
+                </select>
+            </div>
+            <div class="progress-wrap"><div class="progress-bar" id="mpy-progress"></div></div>
+            <div class="progress-text" id="mpy-progress-text">Ready.</div>
+            <div class="flash-log" id="mpy-log" style="display:none;"></div>
+            <details style="margin:0.6rem 0;">
+                <summary style="cursor:pointer;color:var(--text-dim);font-size:0.78rem;user-select:none;padding:0.3rem 0;">Download didn't work? Install from a file instead</summary>
+                <p class="hint" style="margin-top:0.5rem;">
+                    Download the firmware for your board from <a href="https://micropython.org/download/" target="_blank" rel="noopener" style="color:var(--orange);">micropython.org/download</a> (pick your board, grab the latest <code>.bin</code>), then choose it here:
+                </p>
+                <input type="file" id="mpy-file" accept=".bin" style="margin-top:0.4rem;">
+            </details>
+            <div class="modal-actions">
+                <button class="btn" onclick="closeMpyWizard()">Close</button>
+                <button class="btn btn-orange" id="mpy-install-btn" onclick="installMicroPython()">
+                    <i data-lucide="download" style="width:14px;height:14px;"></i> Install MicroPython
                 </button>
             </div>
         </div>
@@ -3662,6 +3714,151 @@
             } finally {
                 isFlashing = false;
                 document.getElementById('flash-start-btn').disabled = false;
+                espLoader = null;
+                espTransport = null;
+            }
+        }
+
+        // ================================================================
+        // MICROPYTHON SETUP WIZARD — one-time firmware flash (offset 0x1000)
+        // NOTE: requires a real ESP32 over USB to test end-to-end.
+        // ================================================================
+        // Firmware download URLs. These point at a known-good MicroPython
+        // release; update the date/version when a newer stable ships. If the
+        // download fails (CORS or stale URL), the wizard falls back to the
+        // manual file picker (#mpy-file).
+        var MPY_FIRMWARE = {
+            ESP32_GENERIC:    'https://micropython.org/resources/firmware/ESP32_GENERIC-20241129-v1.24.1.bin',
+            ESP32_GENERIC_S3: 'https://micropython.org/resources/firmware/ESP32_GENERIC_S3-20241129-v1.24.1.bin',
+            ESP32_GENERIC_C3: 'https://micropython.org/resources/firmware/ESP32_GENERIC_C3-20241129-v1.24.1.bin',
+            ESP32_GENERIC_S2: 'https://micropython.org/resources/firmware/ESP32_GENERIC_S2-20241129-v1.24.1.bin'
+        };
+
+        function openMpyWizard() {
+            document.getElementById('mpy-progress').style.width = '0%';
+            document.getElementById('mpy-progress-text').textContent = 'Ready.';
+            var log = document.getElementById('mpy-log');
+            log.textContent = ''; log.style.display = 'none';
+            document.getElementById('mpy-install-btn').disabled = false;
+            if (!window.__esptoolReady) {
+                mpyLog('Note: the flashing tool is still loading (or blocked). If install fails, reload the page.');
+            }
+            document.getElementById('mpy-modal').classList.add('visible');
+        }
+        function closeMpyWizard() {
+            if (isFlashing) { if (!confirm('Setup is in progress. Close anyway?')) return; }
+            document.getElementById('mpy-modal').classList.remove('visible');
+        }
+        function mpyLog(msg) {
+            var el = document.getElementById('mpy-log');
+            el.style.display = 'block';
+            el.textContent += msg + '\n';
+            el.scrollTop = el.scrollHeight;
+        }
+        function setMpyProgress(pct, label) {
+            document.getElementById('mpy-progress').style.width = pct + '%';
+            document.getElementById('mpy-progress-text').textContent = (label || (pct.toFixed(1) + '%'));
+        }
+
+        // Get the firmware bytes: from the manual file picker if one is chosen,
+        // otherwise download the selected board's firmware.
+        async function getMpyFirmwareBytes(board) {
+            var fileInput = document.getElementById('mpy-file');
+            if (fileInput && fileInput.files && fileInput.files[0]) {
+                mpyLog('Using the firmware file you picked.');
+                var ab = await fileInput.files[0].arrayBuffer();
+                return new Uint8Array(ab);
+            }
+            var url = MPY_FIRMWARE[board] || MPY_FIRMWARE.ESP32_GENERIC;
+            mpyLog('Downloading MicroPython for ' + board + '...');
+            var res = await fetch(url);
+            if (!res.ok) throw new Error('Download failed (' + res.status + '). Use the manual file option below.');
+            var buf = await res.arrayBuffer();
+            mpyLog('Downloaded ' + buf.byteLength + ' bytes.');
+            return new Uint8Array(buf);
+        }
+
+        async function installMicroPython() {
+            if (isFlashing) return;
+            if (!window.__esptoolReady) { mpyLog('The flashing tool did not load. Reload the page and try again.'); return; }
+            if (!('serial' in navigator)) { mpyLog('Web Serial is needed. Use Chrome or Edge on a desktop/laptop for this one-time setup.'); return; }
+
+            var board = document.getElementById('mpy-board').value || 'ESP32_GENERIC';
+
+            if (isConnected) {
+                mpyLog('Releasing the serial monitor so we can use the port...');
+                try { await disconnectSerial(); } catch (e) { mpyLog('Warning: ' + e.message); }
+            }
+
+            isFlashing = true;
+            document.getElementById('mpy-install-btn').disabled = true;
+            setMpyProgress(0, 'Getting firmware...');
+
+            try {
+                // 1. Get the firmware bytes (download or manual file)
+                var bytes;
+                try {
+                    bytes = await getMpyFirmwareBytes(board);
+                } catch (dlErr) {
+                    mpyLog('ERROR: ' + dlErr.message);
+                    mpyLog('Tip: open "Install from a file instead" below, download the .bin from micropython.org, and pick it.');
+                    throw dlErr;
+                }
+
+                setMpyProgress(5, 'Choose your board\'s port...');
+                mpyLog('Requesting USB serial port...');
+                var port = await navigator.serial.requestPort();
+                espTransport = new window.Transport(port, true);
+                espLoader = new window.ESPLoader({
+                    transport: espTransport,
+                    baudrate: 921600,
+                    terminal: { clean: function(){}, writeLine: function(d){ mpyLog(d); }, write: function(){} },
+                    debugLogging: false
+                });
+
+                setMpyProgress(10, 'Connecting to your board...');
+                var chip = await espLoader.main();
+                mpyLog('Connected to: ' + chip);
+
+                // 2. Erase first — MicroPython needs a clean flash
+                setMpyProgress(15, 'Erasing old contents...');
+                mpyLog('Erasing flash (this is the slow part)...');
+                try { await espLoader.eraseFlash(); } catch (e) { mpyLog('Erase note: ' + e.message); }
+
+                // 3. Write firmware at 0x1000 (ESP32 bootloader offset for full images)
+                var binaryString = '';
+                for (var i = 0; i < bytes.length; i++) binaryString += String.fromCharCode(bytes[i]);
+                setMpyProgress(40, 'Installing MicroPython...');
+                mpyLog('Writing firmware to 0x1000...');
+                await espLoader.writeFlash({
+                    fileArray: [{ data: binaryString, address: 0x1000 }],
+                    flashSize: 'keep',
+                    flashMode: 'keep',
+                    flashFreq: 'keep',
+                    eraseAll: false,
+                    compress: true,
+                    reportProgress: function(idx, written, total) {
+                        var pct = 40 + (written / total) * 55;
+                        setMpyProgress(pct, 'Installing ' + Math.round((written / total) * 100) + '%');
+                    },
+                    calculateMD5Hash: null
+                });
+
+                setMpyProgress(98, 'Restarting your board...');
+                try { await espLoader.after(); } catch (e) {}
+                try { await espTransport.disconnect(); } catch (e) {}
+
+                setMpyProgress(100, '🎉 Done! Your board speaks Python now.');
+                mpyLog('Success! MicroPython is installed. You can close this and start writing Python.');
+                serialLog('MicroPython installed — your board now runs Python instantly!', 'sys');
+            } catch (err) {
+                setMpyProgress(0, 'Setup failed — see the log');
+                mpyLog('ERROR: ' + (err && err.message ? err.message : err));
+                serialLog('MicroPython setup failed: ' + (err && err.message ? err.message : err), 'err');
+                try { if (espTransport) await espTransport.disconnect(); } catch (e) {}
+            } finally {
+                isFlashing = false;
+                document.getElementById('mpy-install-btn').disabled = false;
                 espLoader = null;
                 espTransport = null;
             }
