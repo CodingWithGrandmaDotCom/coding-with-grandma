@@ -938,6 +938,9 @@
             <button class="btn btn-blue" onclick="verifyCode()" title="Check your code for common mistakes">
                 <i data-lucide="check-circle" style="width:14px;height:14px;"></i> <span class="btn-label">Check</span>
             </button>
+            <button class="btn" onclick="openShareModal()" title="Get a link to share your project with a friend or family member">
+                <i data-lucide="share-2" style="width:14px;height:14px;"></i> <span class="btn-label">Share</span>
+            </button>
             <button class="btn btn-green" onclick="openFlashModal()" title="Send your finished code to the ESP32 so it starts running">
                 <i data-lucide="zap" style="width:14px;height:14px;"></i> <span class="btn-label">Send to Board</span>
             </button>
@@ -1524,6 +1527,25 @@
                 <button class="btn btn-orange" onclick="selectSerialPort()">
                     <i data-lucide="usb" style="width:14px;height:14px;"></i> Select Port
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SHARE MODAL -->
+    <div class="modal-overlay" id="share-modal">
+        <div class="modal">
+            <h2><i data-lucide="share-2" style="width:18px;height:18px;vertical-align:-3px;color:var(--orange);"></i> Share your project</h2>
+            <p class="hint">
+                Send this link to a friend, a parent, or a grandparent. When they open it,
+                your exact code loads in their browser — ready to read, run, or remix.
+            </p>
+            <div id="share-link-wrap" style="display:flex;gap:0.5rem;margin:1rem 0;">
+                <input type="text" id="share-link-input" readonly style="flex:1;font-size:0.78rem;font-family:ui-monospace,monospace;" onclick="this.select();">
+                <button class="btn btn-orange" id="share-copy-btn" onclick="copyShareLink()">Copy</button>
+            </div>
+            <p class="hint" id="share-note" style="color:var(--text-dimmer);"></p>
+            <div class="modal-actions">
+                <button class="btn" onclick="closeShareModal()">Done</button>
             </div>
         </div>
     </div>
@@ -3073,6 +3095,9 @@
                 renderLineHighlight: 'all'
             });
 
+            // If the page was opened from a Share link, load that project (overrides the welcome/autosave content)
+            loadSharedProjectFromUrl();
+
             // Autosave on change — debounced, with a subtle "Saved" pulse
             editor.onDidChangeModelContent(function () {
                 if (!settings.autosave) return;
@@ -3134,6 +3159,93 @@
         // ================================================================
         // SERIAL
         // ================================================================
+        // SHARE — encode the current code + language into a shareable link
+        // ================================================================
+        // UTF-8 safe base64 (handles emoji / accents in code or comments)
+        function b64EncodeUnicode(str) {
+            return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(m, p1) {
+                return String.fromCharCode('0x' + p1);
+            }));
+        }
+        function b64DecodeUnicode(str) {
+            return decodeURIComponent(Array.prototype.map.call(atob(str), function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+        }
+
+        function buildShareLink() {
+            var code = editor ? editor.getValue() : '';
+            var payload = JSON.stringify({ v: 1, lang: currentLanguage(), code: code });
+            var encoded = b64EncodeUnicode(payload);
+            // Use the hash so the data never hits a server — it stays in the browser.
+            var base = location.origin + location.pathname;
+            return base + '#s=' + encoded;
+        }
+
+        function openShareModal() {
+            if (!editor || !editor.getValue().trim()) {
+                alert('Write or load some code first, then share it!');
+                return;
+            }
+            var link = buildShareLink();
+            var input = document.getElementById('share-link-input');
+            var note = document.getElementById('share-note');
+            input.value = link;
+            // Friendly length warning — very long projects can exceed some apps' link limits
+            if (link.length > 8000) {
+                note.textContent = 'Heads up: this is a big project, so the link is long. It works, but some chat apps may shorten or break very long links. If a friend has trouble, send them the code directly.';
+            } else {
+                note.textContent = 'This link contains your whole project — nothing is uploaded to any server. It works on any phone or computer.';
+            }
+            document.getElementById('share-modal').classList.add('visible');
+            // Auto-select for easy manual copy on mobile
+            setTimeout(function () { input.focus(); input.select(); }, 50);
+        }
+
+        function closeShareModal() { document.getElementById('share-modal').classList.remove('visible'); }
+
+        async function copyShareLink() {
+            var input = document.getElementById('share-link-input');
+            var btn = document.getElementById('share-copy-btn');
+            var ok = false;
+            try {
+                await navigator.clipboard.writeText(input.value);
+                ok = true;
+            } catch (e) {
+                // Fallback for older browsers / insecure contexts
+                try { input.select(); ok = document.execCommand('copy'); } catch (e2) {}
+            }
+            if (ok) {
+                var orig = btn.textContent;
+                btn.textContent = '✓ Copied!';
+                setTimeout(function () { btn.textContent = orig; }, 1800);
+            } else {
+                alert('Couldn\'t copy automatically — tap the link, select all, and copy manually.');
+            }
+        }
+
+        // On page load: if the URL has a shared project (#s=...), load it into the editor.
+        function loadSharedProjectFromUrl() {
+            try {
+                var hash = location.hash || '';
+                var m = hash.match(/[#&]s=([^&]+)/);
+                if (!m) return false;
+                var payload = JSON.parse(b64DecodeUnicode(m[1]));
+                if (!payload || typeof payload.code !== 'string') return false;
+                // Set language first so Monaco highlights correctly
+                if (payload.lang === 'cpp' || payload.lang === 'python') {
+                    setLanguage(payload.lang);
+                }
+                if (editor) editor.setValue(payload.code);
+                serialLog('Loaded a shared project from a link! Edit it freely — your changes auto-save.', 'sys');
+                // Clean the URL so a refresh doesn't re-trigger (and the long hash disappears)
+                history.replaceState(null, '', location.origin + location.pathname);
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
         async function connectBoard() { document.getElementById('connect-modal').classList.add('visible'); }
         function closeConnectModal() { document.getElementById('connect-modal').classList.remove('visible'); }
 
