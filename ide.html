@@ -1072,6 +1072,17 @@
                         <i data-lucide="code" style="width:12px;height:12px;"></i> Use This Code
                     </button>
                 </div>
+
+                <div class="section" style="border-top:1px solid var(--border);padding-top:0.9rem;">
+                    <span class="section-label" style="color:#ffffff;">✏️ Change the code you have</span>
+                    <p style="font-size:0.74rem;color:var(--text-dim);margin-bottom:0.55rem;line-height:1.5;">
+                        Already have code in the editor? Tell the AI what to tweak — it edits what's there instead of starting over.
+                    </p>
+                    <textarea id="refine-input" rows="2" placeholder="e.g. make the light red, blink twice as fast, add a buzzer on pin 12" onkeydown="if(event.key==='Enter'&&(event.ctrlKey||event.metaKey))refineCode()"></textarea>
+                    <button class="btn btn-orange" id="refine-btn" onclick="refineCode()" style="width:100%;justify-content:center;margin-top:0.5rem;padding:0.6rem;">
+                        <i data-lucide="wand-2" style="width:14px;height:14px;"></i> Update My Code
+                    </button>
+                </div>
             </div>
 
             <!-- TEMPLATES PANEL -->
@@ -1608,6 +1619,7 @@
         var currentProvider = 'ollama';
         var lastGeneratedCode = '';
         var isGenerating = false;
+        var refineRequest = null;   // when set, buildUserPrompt() produces an "edit existing code" prompt
         var isFlashing = false;
         var espLoader = null;
         var espTransport = null;
@@ -1805,18 +1817,78 @@
         }
 
         function buildUserPrompt() {
+            var lang = currentLanguage();
+            var langLabel = (lang === 'cpp') ? 'Arduino C++' : 'MicroPython';
+            var boardDesc = (settings && settings.boardDescription) ? settings.boardDescription : '';
+
+            // REFINE MODE — edit the code that's already in the editor
+            if (refineRequest) {
+                var currentCode = editor ? editor.getValue() : '';
+                var rp = 'Here is the user\'s current ' + langLabel + ' code:\n\n```\n' + currentCode + '\n```\n\n';
+                rp += 'The user wants this change: ' + refineRequest + '\n\n';
+                if (boardDesc) rp += 'Their hardware setup: ' + boardDesc + '\n\n';
+                rp += 'Return the COMPLETE updated code (not just the changed part) in ' + langLabel + '. ' +
+                      'Keep all the existing teaching comments, and add new plain-English comments for anything you add or change. ' +
+                      'Make the smallest change needed to satisfy the request — do not rewrite working parts unnecessarily. ' +
+                      'Return only the code.';
+                return rp;
+            }
+
+            // NORMAL MODE — generate fresh code from a description
             var desc = document.getElementById('ai-prompt').value.trim();
             var board = document.getElementById('ai-board').value;
             var components = document.getElementById('ai-components').value.trim();
-            var boardDesc = (settings && settings.boardDescription) ? settings.boardDescription : '';
-            var lang = currentLanguage();
-            var langLabel = (lang === 'cpp') ? 'Arduino C++' : 'MicroPython';
             var prompt = 'Write complete ' + langLabel + ' code for an ' + board + ':\n\n' + desc + '\n\n';
             prompt += 'Board: ' + board + '\nLanguage: ' + langLabel + '\n';
             if (boardDesc) prompt += 'User\'s exact hardware setup: ' + boardDesc + '\n';
             if (components) prompt += 'Components: ' + components + '\n';
             prompt += '\nRemember: every line or small block needs a teaching comment. The user is a beginner — explain WHY.';
             return prompt;
+        }
+
+        async function refineCode() {
+            var req = document.getElementById('refine-input').value.trim();
+            if (!req) { alert('Tell me what to change — like "make the light red" or "blink faster".'); return; }
+            if (!editor || !editor.getValue().trim()) {
+                alert('There\'s no code to change yet. Generate some with "Write My Code", load an Example, or snap a photo first.');
+                return;
+            }
+            if (isGenerating) return;
+
+            var responseArea = document.getElementById('ai-response');
+            var refineBtn = document.getElementById('refine-btn');
+
+            isGenerating = true;
+            refineBtn.disabled = true;
+            refineBtn.innerHTML = '<span class="loading-spinner"></span> Updating...';
+            responseArea.innerHTML = '<span class="thinking">Updating your code...</span>';
+            responseArea.classList.remove('has-content');
+            lastGeneratedCode = '';
+            refineRequest = req;   // switches buildUserPrompt() into edit mode
+
+            try {
+                if (currentProvider === 'ollama') await generateOllama(responseArea);
+                else if (currentProvider === 'claude') await generateClaude(responseArea);
+                else if (currentProvider === 'gemini') await generateGemini(responseArea);
+                else if (currentProvider === 'openai') await generateOpenAI(responseArea);
+
+                if (lastGeneratedCode) {
+                    editor.setValue(lastGeneratedCode);            // auto-apply the edit
+                    document.getElementById('refine-input').value = '';
+                    serialLog('Updated your code: "' + req + '"', 'sys');
+                } else {
+                    serialLog('The AI replied but I couldn\'t find code in the response. Try rephrasing the change.', 'warn');
+                }
+            } catch (err) {
+                responseArea.innerHTML = '<span style="color:var(--red);">Error: ' + err.message + '</span>';
+                serialLog('AI refine error: ' + err.message, 'err');
+            }
+
+            refineRequest = null;   // back to normal generate mode
+            isGenerating = false;
+            refineBtn.disabled = false;
+            refineBtn.innerHTML = '<i data-lucide="wand-2" style="width:14px;height:14px;"></i> Update My Code';
+            if (window.lucide && lucide.createIcons) lucide.createIcons();
         }
 
         async function generateWithAI() {
